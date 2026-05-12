@@ -1,0 +1,58 @@
+name: YouTube Token Maintenance
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # UTC. Daily 01:37 WIB, intentionally away from publish cron slots.
+    - cron: "37 18 * * *"
+
+concurrency:
+  group: youtube-token-maintenance
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    env:
+      YOUTUBE_UPLOAD_ENABLED: "true"
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node with cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Validate YouTube refresh token
+        shell: bash
+        run: |
+          missing=0
+          for key in YOUTUBE_CLIENT_ID YOUTUBE_CLIENT_SECRET YOUTUBE_REFRESH_TOKEN
+          do
+            if [ -z "${!key}" ]; then
+              echo "::error::$key belum diisi di GitHub Secrets."
+              missing=1
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            exit 1
+          fi
+
+          node src/youtube-check.js
+          echo "YouTube refresh token valid pada $(date -u)."

@@ -1,0 +1,227 @@
+name: Meta Token Maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: "Force refresh token now: true/false"
+        required: false
+        default: "false"
+
+  schedule:
+    # UTC. Run on the 1st of every other month (~60 days, the closest cron pattern
+    # to a 50-day cadence). Token exchange only runs near expiry by default.
+    - cron: "17 6 1 */2 *"
+
+concurrency:
+  group: meta-token-maintenance
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      GRAPH_API_VERSION: v25.0
+
+      INSTAGRAM_UPLOAD_ENABLED: ${{ secrets.INSTAGRAM_UPLOAD_ENABLED || 'true' }}
+      INSTAGRAM_IG_USER_ID: ${{ secrets.INSTAGRAM_IG_USER_ID }}
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      AUTO_REFRESH_INSTAGRAM_TOKEN: ${{ secrets.AUTO_REFRESH_INSTAGRAM_TOKEN || 'true' }}
+
+      FACEBOOK_UPLOAD_ENABLED: ${{ secrets.FACEBOOK_UPLOAD_ENABLED || 'true' }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+      FACEBOOK_USER_ACCESS_TOKEN: ${{ secrets.FACEBOOK_USER_ACCESS_TOKEN }}
+      AUTO_REFRESH_FACEBOOK_TOKEN: ${{ secrets.AUTO_REFRESH_FACEBOOK_TOKEN || 'true' }}
+
+      META_APP_ID: ${{ secrets.META_APP_ID }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+      TOKEN_REFRESH_BEFORE_DAYS: ${{ secrets.TOKEN_REFRESH_BEFORE_DAYS || '10' }}
+
+      THREADS_UPLOAD_ENABLED: ${{ secrets.THREADS_UPLOAD_ENABLED || 'false' }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      THREADS_API_VERSION: ${{ secrets.THREADS_API_VERSION || 'v1.0' }}
+      AUTO_REFRESH_THREADS_TOKEN: ${{ secrets.AUTO_REFRESH_THREADS_TOKEN || 'true' }}
+      THREADS_TOKEN_ISSUED_AT: ${{ secrets.THREADS_TOKEN_ISSUED_AT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Decide refresh mode
+        shell: bash
+        run: |
+          force_refresh="false"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ inputs.force_refresh || 'false' }}" in
+              1|true|TRUE|yes|YES|on|ON) force_refresh="true" ;;
+            esac
+          fi
+
+          echo "FORCE_REFRESH=$force_refresh" >> "$GITHUB_ENV"
+          echo "Force refresh: $force_refresh"
+
+      - name: Refresh Facebook token
+        shell: bash
+        run: |
+          if [ "$FACEBOOK_UPLOAD_ENABLED" != "true" ]; then
+            echo "Facebook upload disabled; token maintenance skipped."
+            exit 0
+          fi
+
+          if [ -z "$FACEBOOK_PAGE_ID" ]; then
+            echo "::error::FACEBOOK_PAGE_ID belum diisi di GitHub Secrets."
+            exit 1
+          fi
+
+          if [ -z "$FACEBOOK_PAGE_ACCESS_TOKEN" ] && [ -z "$FACEBOOK_USER_ACCESS_TOKEN" ]; then
+            echo "::error::FACEBOOK_PAGE_ACCESS_TOKEN atau FACEBOOK_USER_ACCESS_TOKEN wajib diisi di GitHub Secrets."
+            exit 1
+          fi
+
+          args=(--github-env)
+          if [ "$FORCE_REFRESH" = "true" ]; then
+            args+=(--force)
+          fi
+
+          if ! node src/facebook-token-fastcheck.js "${args[@]}"; then
+            echo "::error::Facebook token maintenance gagal. Token baru perlu dicek/dibuat ulang dari Meta."
+            echo "META_TOKEN_MAINTENANCE_FAILED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist Facebook token secrets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "${FACEBOOK_TOKEN_REFRESHED:-false}" != "true" ] && [ "${FACEBOOK_USER_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Facebook token secrets unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::GH_REPO_SECRET_TOKEN wajib diisi agar token refresh bisa disimpan ke GitHub Secrets."
+            exit 1
+          fi
+
+          if [ "${FACEBOOK_TOKEN_REFRESHED:-false}" = "true" ] && [ -n "${FACEBOOK_PAGE_ACCESS_TOKEN:-}" ]; then
+            printf '%s' "$FACEBOOK_PAGE_ACCESS_TOKEN" | gh secret set FACEBOOK_PAGE_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "Facebook Page token GitHub Secret updated."
+          fi
+
+          if [ "${FACEBOOK_USER_TOKEN_REFRESHED:-false}" = "true" ] && [ -n "${FACEBOOK_USER_ACCESS_TOKEN:-}" ]; then
+            printf '%s' "$FACEBOOK_USER_ACCESS_TOKEN" | gh secret set FACEBOOK_USER_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "Facebook user token GitHub Secret updated."
+          fi
+
+      - name: Refresh Instagram token
+        shell: bash
+        run: |
+          if [ "$INSTAGRAM_UPLOAD_ENABLED" != "true" ]; then
+            echo "Instagram upload disabled; token maintenance skipped."
+            exit 0
+          fi
+
+          if [ -z "$INSTAGRAM_IG_USER_ID" ]; then
+            echo "::error::INSTAGRAM_IG_USER_ID belum diisi di GitHub Secrets."
+            exit 1
+          fi
+
+          if [ -z "$INSTAGRAM_ACCESS_TOKEN" ] && [ -z "$FACEBOOK_PAGE_ACCESS_TOKEN" ] && [ -z "$FACEBOOK_USER_ACCESS_TOKEN" ]; then
+            echo "::error::INSTAGRAM_ACCESS_TOKEN atau fallback Facebook token wajib diisi di GitHub Secrets."
+            exit 1
+          fi
+
+          args=(--github-env)
+          if [ "$FORCE_REFRESH" = "true" ]; then
+            args+=(--force)
+          fi
+
+          if ! node src/instagram-token-fastcheck.js "${args[@]}"; then
+            echo "::error::Instagram token maintenance gagal. Token baru perlu dicek/dibuat ulang dari Meta."
+            echo "META_TOKEN_MAINTENANCE_FAILED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist Instagram token secret
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "${INSTAGRAM_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Instagram token secret unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::GH_REPO_SECRET_TOKEN wajib diisi agar token refresh bisa disimpan ke GitHub Secrets."
+            exit 1
+          fi
+
+          printf '%s' "$INSTAGRAM_ACCESS_TOKEN" | gh secret set INSTAGRAM_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+          echo "Instagram token GitHub Secret updated."
+
+      - name: Refresh Threads token
+        shell: bash
+        run: |
+          if [ "$THREADS_UPLOAD_ENABLED" != "true" ]; then
+            echo "Threads upload disabled; token maintenance skipped."
+            exit 0
+          fi
+
+          if [ -z "$THREADS_ACCESS_TOKEN" ]; then
+            echo "::error::THREADS_ACCESS_TOKEN belum diisi di GitHub Secrets."
+            exit 1
+          fi
+
+          args=(--github-env)
+          if [ "$FORCE_REFRESH" = "true" ]; then
+            args+=(--force)
+          fi
+
+          if ! node src/threads-token-fastcheck.js "${args[@]}"; then
+            echo "::error::Threads token maintenance gagal. Token baru perlu dicek/dibuat ulang dari Meta."
+            echo "META_TOKEN_MAINTENANCE_FAILED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist Threads token secret
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "${THREADS_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Threads token secret unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::GH_REPO_SECRET_TOKEN wajib diisi agar token refresh bisa disimpan ke GitHub Secrets."
+            exit 1
+          fi
+
+          printf '%s' "$THREADS_ACCESS_TOKEN" | gh secret set THREADS_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+          if [ -n "${THREADS_TOKEN_ISSUED_AT:-}" ]; then
+            printf '%s' "$THREADS_TOKEN_ISSUED_AT" | gh secret set THREADS_TOKEN_ISSUED_AT --repo "$GITHUB_REPOSITORY"
+          fi
+          echo "Threads token GitHub Secret updated."
+
+      - name: Fail if token maintenance failed
+        shell: bash
+        run: |
+          if [ "${META_TOKEN_MAINTENANCE_FAILED:-false}" = "true" ]; then
+            echo "::error::Satu atau lebih token Meta gagal divalidasi/refresh."
+            exit 1
+          fi
+
+          echo "Meta token maintenance selesai."

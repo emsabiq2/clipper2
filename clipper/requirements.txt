@@ -1,0 +1,8 @@
+faster-whisper>=1.1.0
+opencv-python>=4.9.0
+numpy>=1.26.0
+Pillow>=10.4.0
+yt-dlp>=2025.3.31
+mediapipe==0.10.14
+insightface>=0.7.3
+onnxruntime>=1.17.0

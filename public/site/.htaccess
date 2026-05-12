@@ -1,0 +1,24 @@
+Options -Indexes
+DirectoryIndex index.php index.html
+
+<FilesMatch "(^\.env|cookies\.txt|.*\.(log|sql|sqlite|bak|key|pem)$)">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^privacy-policy/?$ privacy-policy.php [L]
+    RewriteRule ^terms-of-service/?$ terms-of-service.php [L]
+    RewriteRule ^oauth-testing-instructions/?$ oauth-testing-instructions.php [L]
+    RewriteRule ^application-use-case/?$ application-use-case.php [L]
+    RewriteRule ^oauth-scopes-justification/?$ oauth-scopes-justification.php [L]
+    RewriteRule ^data-deletion/?$ data-deletion.php [L]
+    RewriteRule ^dashboard/?$ dashboard-preview.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Clipper Emsa Pro - Short Video Publishing App</title>
+    <meta name="description" content="Clipper Emsa Pro creates short video clips and publishes approved videos to connected YouTube and TikTok accounts after user authorization.">
+    <link rel="canonical" href="https://clipper2.emsa.pro/">
+    <link rel="stylesheet" href="/site.css">
+  </head>
+  <body>
+    <header class="siteHeader">
+      <a class="brand" href="/">
+        <span class="brandMark">CE</span>
+        <span>Clipper Emsa Pro</span>
+      </a>
+      <nav>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms-of-service">Terms</a>
+        <a href="/application-use-case">Use Case</a>
+        <a class="loginLink" href="/login-youtube.php">YouTube OAuth</a>
+        <a class="loginLink" href="/login-tiktok.php">TikTok Direct Post</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="heroCopy">
+          <p class="eyebrow">Official application website</p>
+          <h1>Clipper Emsa Pro</h1>
+          <p class="lead">Clipper Emsa Pro is a web app that helps a user create short vertical video clips, review generated publishing details, and publish approved videos to the user's own YouTube or TikTok account after the user grants the required platform permission.</p>
+          <div class="actions">
+            <a class="btn primary" href="/login-youtube.php">Open YouTube OAuth Test</a>
+            <a class="btn ghost" href="/login-tiktok.php">Open TikTok Direct Post</a>
+            <a class="btn ghost" href="/privacy-policy">Privacy Policy</a>
+          </div>
+        </div>
+        <div class="productShot" aria-label="Dashboard preview">
+          <div class="shotTop">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="shotGrid">
+            <section>
+              <small>Google OAuth</small>
+              <strong>YouTube Upload</strong>
+              <p>Requests only the YouTube upload scope and uses it to publish generated Shorts.</p>
+            </section>
+            <section>
+              <small>TikTok API</small>
+              <strong>Direct Post</strong>
+              <p>Lets an authorized creator preview a generated video, choose required TikTok settings, confirm consent, and submit the post.</p>
+            </section>
+            <section>
+              <small>Workflow</small>
+              <strong>Clipper Pipeline</strong>
+              <p>Queue, clip rendering, captions, SFTP media storage, and publish status.</p>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="reviewFlow">
+        <h2>Connected Platform Publishing</h2>
+        <p>Clipper Emsa Pro exposes the user-facing flows needed for platform review. YouTube upload and TikTok Direct Post are separate authorization paths, and each publish action uses only the permission needed for that platform.</p>
+        <div class="docGrid">
+          <div class="docPanel">
+            <strong>YouTube OAuth Upload</strong>
+            <p>The app requests <code>https://www.googleapis.com/auth/youtube.upload</code> only when the user connects YouTube, then uploads the approved generated video to the user's authorized channel.</p>
+          </div>
+          <div class="docPanel">
+            <strong>TikTok Direct Post</strong>
+            <p>The app lets the reviewer connect TikTok, view creator information, preview the selected video, choose privacy and interaction settings, confirm TikTok policy consent, and submit the post.</p>
+          </div>
+        </div>
+        <ol>
+          <li>The user opens Clipper Emsa Pro and selects the publishing platform they want to connect.</li>
+          <li>The app redirects the user to the selected platform authorization flow and requests the relevant upload or publish permission.</li>
+          <li>After consent, the app stores server-side tokens only as needed to complete the user-requested upload or publish workflow.</li>
+          <li>The user can review generated video details, privacy settings, and publish status before or after submission.</li>
+          <li>The app stores platform response IDs, status, and audit logs so the user can confirm the result.</li>
+        </ol>
+        <div class="docNav">
+          <a href="/oauth-testing-instructions">OAuth Testing Instructions</a>
+          <a href="/oauth-scopes-justification">Scope Justification</a>
+          <a href="/application-use-case">Application Use Case</a>
+          <a href="/login-tiktok.php">TikTok Direct Post</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <a href="/privacy-policy">Privacy Policy</a>
+      <a href="/terms-of-service">Terms of Service</a>
+      <a href="/oauth-testing-instructions">OAuth Testing</a>
+      <a href="/login-tiktok.php">TikTok Direct Post</a>
+    </footer>
+  </body>
+</html>

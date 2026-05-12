@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Application Use Case - Clipper Emsa Pro</title>
+    <meta name="description" content="User-facing application use case for Clipper Emsa Pro Google OAuth verification.">
+    <link rel="canonical" href="https://clipper2.emsa.pro/application-use-case">
+    <link rel="stylesheet" href="/site.css">
+  </head>
+  <body>
+    <header class="siteHeader">
+      <a class="brand" href="/"><span class="brandMark">CE</span><span>Clipper Emsa Pro</span></a>
+      <nav>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms-of-service">Terms</a>
+        <a href="/oauth-testing-instructions">Testing</a>
+        <a class="loginLink" href="/login-youtube.php">YouTube OAuth</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <p class="eyebrow">Google OAuth Verification</p>
+      <h1>Application Use Case</h1>
+      <p class="docLead">Clipper Emsa Pro is a web app that creates short video clips and uploads approved generated videos to the user's own YouTube channel after the user grants Google OAuth permission.</p>
+
+      <h2>Primary User-Facing Use Case</h2>
+      <p>The primary use case is <strong>creator-authorized YouTube video upload</strong>. A user connects a Google account, authorizes YouTube upload permission, prepares a short video through the Clipper workflow, and allows the app to upload the generated MP4 to the connected YouTube channel.</p>
+
+      <div class="docGrid">
+        <div class="docPanel">
+          <strong>Who uses it</strong>
+          <p>Content operators, creators, or account owners who manage a YouTube channel and want to turn approved source material into short vertical uploads.</p>
+        </div>
+        <div class="docPanel">
+          <strong>What the user sees</strong>
+          <p>A public app site, YouTube OAuth test page, dashboard workflow status, generated media metadata, upload result, YouTube video ID, and publish URL.</p>
+        </div>
+        <div class="docPanel">
+          <strong>Why Google OAuth is needed</strong>
+          <p>The app cannot upload to the user's YouTube channel unless the user grants permission through Google's OAuth consent screen.</p>
+        </div>
+        <div class="docPanel">
+          <strong>What is uploaded</strong>
+          <p>Only the final user-approved generated short video and its metadata, such as title, description, tags, category, and privacy status.</p>
+        </div>
+      </div>
+
+      <h2>Workflow</h2>
+      <ol>
+        <li>User opens Clipper Emsa Pro and adds or selects a source video link or queue item.</li>
+        <li>The app processes the content into a short vertical clip and creates publishing metadata.</li>
+        <li>User connects YouTube through Google OAuth if YouTube upload is enabled.</li>
+        <li>The app requests only the YouTube upload scope.</li>
+        <li>After consent, the app stores the refresh token server-side for scheduled upload jobs.</li>
+        <li>When the clip is ready, the app generates a short-lived access token and uploads the video to YouTube.</li>
+        <li>The app records the upload result so the user can see the YouTube URL and status.</li>
+      </ol>
+
+      <h2>Acceptable Use Alignment</h2>
+      <p>The app aligns with a user-facing content publishing use case: the user grants access so Clipper Emsa Pro can upload generated videos to a YouTube channel the user controls. The app does not use Google user data for hidden background profiling, advertising, data resale, unrelated analytics, or training generalized AI models.</p>
+
+      <h2>Not Part of This Google OAuth Use Case</h2>
+      <ul>
+        <li>No Gmail, Drive, Calendar, Photos, or Workspace data access.</li>
+        <li>No reading private YouTube analytics, comments, memberships, or channel audit data.</li>
+        <li>No deleting YouTube videos or managing comments.</li>
+        <li>No background upload without a configured workflow and prior user OAuth consent.</li>
+      </ul>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <a href="/privacy-policy">Privacy Policy</a>
+      <a href="/oauth-scopes-justification">Scope Justification</a>
+    </footer>
+  </body>
+</html>

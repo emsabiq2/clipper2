@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "default": "theme-a-viral-softbeat",
+  "tracks": [
+    {
+      "id": "theme-a-viral-softbeat",
+      "label": "Theme A - Artis / Viral Softbeat",
+      "file": "theme-a-viral-softbeat.mp3",
+      "mood": "energetic-soft",
+      "priority": 2,
+      "volume": 0.40,
+      "themes": [],
+      "keywords": ["artis", "seleb", "viral", "ramai", "fyp", "terkenal", "publik", "konten", "netizen"]
+    },
+    {
+      "id": "theme-b-inspirasi-lofi",
+      "label": "Theme B - Inspirasi / Curhat",
+      "file": "theme-b-inspirasi-lofi.mp3",
+      "mood": "warm-lofi",
+      "priority": 1,
+      "volume": 0.40,
+      "themes": ["inspirasi", "curhat", "motivasi"],
+      "keywords": ["hidup", "belajar", "proses", "mimpi", "percaya", "mental", "jatuh", "bangkit", "keluarga", "perasaan", "relate"]
+    },
+    {
+      "id": "theme-c-komedi-pop",
+      "label": "Theme C - Komedi / Hiburan",
+      "file": "theme-c-komedi-pop.mp3",
+      "mood": "bright-pop",
+      "priority": 1,
+      "volume": 0.40,
+      "themes": ["komedi", "hiburan", "fun"],
+      "keywords": ["lucu", "ketawa", "bercanda", "random", "kocak", "hiburan", "seru", "santai", "ngakak"]
+    },
+    {
+      "id": "theme-d-drama-pulse",
+      "label": "Theme D - Drama / Konflik",
+      "file": "theme-d-drama-pulse.mp3",
+      "mood": "tense-pulse",
+      "priority": 1,
+      "volume": 0.40,
+      "themes": ["drama", "konflik", "kontroversi"],
+      "keywords": ["drama", "konflik", "masalah", "marah", "rahasia", "kontroversi", "tegang", "takut", "sedih", "kehilangan", "dibenci"]
+    },
+    {
+      "id": "theme-e-fakta-clean",
+      "label": "Theme E - Fakta / Edukasi",
+      "file": "theme-e-fakta-clean.mp3",
+      "mood": "clean-groove",
+      "priority": 1,
+      "volume": 0.40,
+      "themes": ["edukasi", "fakta", "bisnis"],
+      "keywords": ["fakta", "bisnis", "uang", "karier", "kerja", "strategi", "data", "tips", "edukasi", "pelajaran", "analisis"]
+    }
+  ]
+}

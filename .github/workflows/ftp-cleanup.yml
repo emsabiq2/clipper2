@@ -1,0 +1,113 @@
+name: SFTP Cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Retention dalam hari (file lebih lama dari ini akan dihapus)"
+        required: false
+        default: "1"
+      delete_all:
+        description: "true = hapus semua file pada subfolder yang dipilih"
+        required: false
+        default: "false"
+      match:
+        description: "Opsional filter nama file/glob, contoh *.mp4"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run (true = hanya log, tidak menghapus)"
+        required: false
+        default: "false"
+      subdirs:
+        description: "Subfolder yang dibersihkan (CSV). Default: videos,thumbnails,metadata,history"
+        required: false
+        default: ""
+
+  schedule:
+    # 16:30 UTC = 23:30 WIB. Setelah semua slot publish (07/12/19 WIB) selesai.
+    - cron: "30 16 * * *"
+
+concurrency:
+  group: sftp-cleanup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_PREFER_OFFLINE: "true"
+      UPLOAD_DRIVER: sftp
+      PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+      SFTP_HOST: ${{ secrets.SFTP_HOST || secrets.FTP_HOST }}
+      SFTP_PORT: ${{ secrets.SFTP_PORT || '65002' }}
+      SFTP_USER: ${{ secrets.SFTP_USER }}
+      SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD || secrets.FTP_PASSWORD }}
+      SFTP_PRIVATE_KEY: ${{ secrets.SFTP_PRIVATE_KEY }}
+      SFTP_PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
+      SFTP_REMOTE_DIR: ${{ secrets.SFTP_REMOTE_DIR }}
+      SFTP_TIMEOUT_SECONDS: ${{ secrets.SFTP_TIMEOUT_SECONDS || secrets.FTP_TIMEOUT_SECONDS || '420' }}
+      SFTP_CLEANUP_TIMEOUT_SECONDS: ${{ secrets.SFTP_CLEANUP_TIMEOUT_SECONDS || secrets.FTP_CLEANUP_TIMEOUT_SECONDS || '600' }}
+      SFTP_STATE_TIMEOUT_SECONDS: ${{ secrets.SFTP_STATE_TIMEOUT_SECONDS || secrets.FTP_STATE_TIMEOUT_SECONDS || '180' }}
+      SFTP_UPLOAD_RETRIES: ${{ secrets.SFTP_UPLOAD_RETRIES || secrets.FTP_UPLOAD_RETRIES || '4' }}
+      SFTP_CLEANUP_DAYS: ${{ github.event.inputs.days || secrets.SFTP_CLEANUP_DAYS || secrets.FTP_CLEANUP_DAYS || '1' }}
+      SFTP_CLEANUP_DELETE_ALL: ${{ github.event.inputs.delete_all || 'false' }}
+      SFTP_CLEANUP_SUBDIRS: ${{ github.event.inputs.subdirs || '' }}
+      SFTP_CLEANUP_MATCH: ${{ github.event.inputs.match || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node with cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Restore Node modules cache
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{ runner.arch }}-node20-
+
+      - name: Validate SFTP secrets
+        shell: bash
+        run: |
+          missing=0
+          for key in SFTP_HOST SFTP_USER SFTP_REMOTE_DIR
+          do
+            if [ -z "${!key}" ]; then
+              echo "::error::$key belum diisi di GitHub Secrets"
+              missing=1
+            fi
+          done
+          if [ -z "$SFTP_PASSWORD" ] && [ -z "$SFTP_PRIVATE_KEY" ]; then
+            echo "::error::SFTP_PASSWORD atau SFTP_PRIVATE_KEY belum diisi di GitHub Secrets"
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Install Node dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Run SFTP cleanup
+        shell: bash
+        run: |
+          args=()
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          npm run remote:cleanup -- "${args[@]}"

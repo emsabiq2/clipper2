@@ -1,0 +1,1030 @@
+name: Podcast Clipper Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: Theme to process
+        required: false
+        default: auto
+      url:
+        description: Optional YouTube URL for manual run
+        required: false
+        default: ""
+      range:
+        description: Optional manual range, example 00:01:20-00:02:05
+        required: false
+        default: ""
+      force_reprocess:
+        description: "Force manual URL even if duplicate history exists: true/false"
+        required: false
+        default: "false"
+      quality_profile:
+        description: "Video quality profile: fast, standard, high, ultra"
+        required: false
+        default: standard
+      deepgram_enabled:
+        description: "Deepgram transcription is required: use 1"
+        required: false
+        default: "1"
+      subtitle_font:
+        description: Subtitle font family
+        required: false
+        default: "Selawik Semibold"
+      subtitle_font_size:
+        description: Subtitle font size
+        required: false
+        default: "46"
+      subtitle_margin_v:
+        description: Subtitle bottom margin
+        required: false
+        default: "550"
+      subtitle_margin_h:
+        description: Subtitle side margin
+        required: false
+        default: "180"
+      scene_mode:
+        description: "Scene mode: podcast, solo, game, reaction, sport, auto, active_speaker, center"
+        required: false
+        default: "podcast"
+      clip_count:
+        description: How many clips to render from the source video
+        required: false
+        default: "2"
+      use_frame:
+        description: "Apply Emsa frame: true/false"
+        required: false
+        default: "true"
+      use_filter:
+        description: "Apply light uniqueness filter: true/false"
+        required: false
+        default: "true"
+      use_watermark:
+        description: "Apply transparent logo watermark: true/false"
+        required: false
+        default: "true"
+      background_music_enabled:
+        description: "Mix local backsound: 0/1"
+        required: false
+        default: "1"
+      background_music_file:
+        description: "Path backsound, use auto for theme mapping"
+        required: false
+        default: "auto"
+      background_music_map_file:
+        description: "Backsound mapping JSON"
+        required: false
+        default: "assets/music/music-map.json"
+      background_music_volume:
+        description: "Backsound volume, example 0.06"
+        required: false
+        default: "0.06"
+      ai_provider:
+        description: "AI teks dikunci ke OpenAI; input lama diabaikan"
+        required: false
+        default: "openai"
+  schedule:
+    # GitHub schedule uses UTC.
+    # Target 15 video/hari, disebar dari pagi sampai malam WIB.
+    # Menit dibuat ganjil agar tidak menabrak jam puncak cron GitHub.
+    - cron: "3 23 * * *"  # 06:03 WIB
+    - cron: "13 0 * * *"  # 07:13 WIB
+    - cron: "23 1 * * *"  # 08:23 WIB
+    - cron: "33 2 * * *"  # 09:33 WIB
+    - cron: "43 3 * * *"  # 10:43 WIB
+    - cron: "53 4 * * *"  # 11:53 WIB
+    - cron: "7 6 * * *"   # 13:07 WIB
+    - cron: "17 7 * * *"  # 14:17 WIB
+    - cron: "27 8 * * *"  # 15:27 WIB
+    - cron: "37 9 * * *"  # 16:37 WIB
+    - cron: "47 10 * * *" # 17:47 WIB
+    - cron: "57 11 * * *" # 18:57 WIB
+    - cron: "9 13 * * *"  # 20:09 WIB
+    - cron: "19 14 * * *" # 21:19 WIB
+    - cron: "29 15 * * *" # 22:29 WIB
+
+concurrency:
+  group: podcast-clipper-automation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    env:
+      LOCAL_PORT: 8788
+      APP_TIMEZONE: Asia/Jakarta
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_PREFER_OFFLINE: "true"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_PREFER_BINARY: "1"
+
+      PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL }}
+      UPLOAD_DRIVER: sftp
+      REMOTE_UPLOAD_REQUIRED: ${{ secrets.REMOTE_UPLOAD_REQUIRED || 'false' }}
+      DRY_RUN: "false"
+      AUTO_PUBLISH: "true"
+      DEFAULT_THEME: auto
+
+      GRAPH_API_VERSION: v25.0
+      API_CHECK_TIMEOUT_SECONDS: ${{ secrets.API_CHECK_TIMEOUT_SECONDS || '90' }}
+
+      INSTAGRAM_UPLOAD_ENABLED: ${{ secrets.INSTAGRAM_UPLOAD_ENABLED || 'true' }}
+      INSTAGRAM_REEL_UPLOAD_METHOD: video_url
+      INSTAGRAM_MAX_UPLOAD_BYTES: ${{ secrets.INSTAGRAM_MAX_UPLOAD_BYTES || '7800000' }}
+      FACEBOOK_UPLOAD_ENABLED: ${{ secrets.FACEBOOK_UPLOAD_ENABLED || 'true' }}
+      FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+      FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+      FACEBOOK_USER_ACCESS_TOKEN: ${{ secrets.FACEBOOK_USER_ACCESS_TOKEN }}
+      AUTO_REFRESH_FACEBOOK_TOKEN: ${{ secrets.AUTO_REFRESH_FACEBOOK_TOKEN || 'true' }}
+      FACEBOOK_MEDIA_TYPE: ${{ secrets.FACEBOOK_MEDIA_TYPE || 'reel' }}
+      FACEBOOK_VIDEO_STATE: ${{ secrets.FACEBOOK_VIDEO_STATE || 'PUBLISHED' }}
+      FACEBOOK_TITLE_PREFIX: ${{ secrets.FACEBOOK_TITLE_PREFIX }}
+
+      YOUTUBE_UPLOAD_ENABLED: ${{ secrets.YOUTUBE_UPLOAD_ENABLED || 'true' }}
+
+      TIKTOK_UPLOAD_PAUSED: ${{ secrets.TIKTOK_UPLOAD_PAUSED || 'true' }}
+      TIKTOK_UPLOAD_ENABLED: ${{ secrets.TIKTOK_UPLOAD_ENABLED || 'false' }}
+      TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+      TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+      TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
+      TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+      TIKTOK_OPEN_ID: ${{ secrets.TIKTOK_OPEN_ID }}
+      TIKTOK_SCOPE: ${{ secrets.TIKTOK_SCOPE }}
+      TIKTOK_REDIRECT_URI: ${{ secrets.TIKTOK_REDIRECT_URI || 'https://clipper2.emsa.pro/auth/tiktok/callback.php' }}
+      TIKTOK_PUBLISH_MODE: ${{ secrets.TIKTOK_PUBLISH_MODE || 'direct' }}
+      TIKTOK_PRIVACY_LEVEL: ${{ secrets.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY' }}
+      TIKTOK_DISABLE_DUET: ${{ secrets.TIKTOK_DISABLE_DUET || 'false' }}
+      TIKTOK_DISABLE_COMMENT: ${{ secrets.TIKTOK_DISABLE_COMMENT || 'false' }}
+      TIKTOK_DISABLE_STITCH: ${{ secrets.TIKTOK_DISABLE_STITCH || 'false' }}
+      TIKTOK_COVER_TIMESTAMP_MS: ${{ secrets.TIKTOK_COVER_TIMESTAMP_MS || '1000' }}
+
+      THREADS_UPLOAD_ENABLED: ${{ secrets.THREADS_UPLOAD_ENABLED || 'false' }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+      THREADS_API_VERSION: ${{ secrets.THREADS_API_VERSION || 'v1.0' }}
+      AUTO_REFRESH_THREADS_TOKEN: ${{ secrets.AUTO_REFRESH_THREADS_TOKEN || 'true' }}
+      THREADS_TOKEN_ISSUED_AT: ${{ secrets.THREADS_TOKEN_ISSUED_AT }}
+      THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+      THREADS_CONTAINER_POLL_SECONDS: ${{ secrets.THREADS_CONTAINER_POLL_SECONDS || '6' }}
+      THREADS_CONTAINER_MAX_ATTEMPTS: ${{ secrets.THREADS_CONTAINER_MAX_ATTEMPTS || '90' }}
+
+      SFTP_HOST: ${{ secrets.SFTP_HOST || secrets.FTP_HOST }}
+      SFTP_PORT: ${{ secrets.SFTP_PORT || '65002' }}
+      SFTP_USER: ${{ secrets.SFTP_USER }}
+      SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD || secrets.FTP_PASSWORD }}
+      SFTP_PRIVATE_KEY: ${{ secrets.SFTP_PRIVATE_KEY }}
+      SFTP_PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
+      SFTP_REMOTE_DIR: ${{ secrets.SFTP_REMOTE_DIR }}
+      SFTP_TIMEOUT_SECONDS: ${{ secrets.SFTP_TIMEOUT_SECONDS || secrets.FTP_TIMEOUT_SECONDS || '30' }}
+      SFTP_UPLOAD_TIMEOUT_SECONDS: ${{ secrets.SFTP_UPLOAD_TIMEOUT_SECONDS || secrets.FTP_UPLOAD_TIMEOUT_SECONDS || '1800' }}
+      SFTP_CLEANUP_TIMEOUT_SECONDS: ${{ secrets.SFTP_CLEANUP_TIMEOUT_SECONDS || secrets.FTP_CLEANUP_TIMEOUT_SECONDS || '600' }}
+      SFTP_STATE_TIMEOUT_SECONDS: ${{ secrets.SFTP_STATE_TIMEOUT_SECONDS || secrets.FTP_STATE_TIMEOUT_SECONDS || '30' }}
+      SFTP_PRECHECK_TIMEOUT_SECONDS: ${{ secrets.SFTP_PRECHECK_TIMEOUT_SECONDS || secrets.FTP_PRECHECK_TIMEOUT_SECONDS || '12' }}
+      SFTP_PRECHECK_RETRIES: ${{ secrets.SFTP_PRECHECK_RETRIES || secrets.FTP_PRECHECK_RETRIES || '1' }}
+      SFTP_UPLOAD_RETRIES: ${{ secrets.SFTP_UPLOAD_RETRIES || secrets.FTP_UPLOAD_RETRIES || '4' }}
+      SFTP_PUBLIC_URL_RETRIES: ${{ secrets.SFTP_PUBLIC_URL_RETRIES || secrets.FTP_PUBLIC_URL_RETRIES || '8' }}
+      SFTP_PUBLIC_URL_RETRY_DELAY_MS: ${{ secrets.SFTP_PUBLIC_URL_RETRY_DELAY_MS || secrets.FTP_PUBLIC_URL_RETRY_DELAY_MS || '2500' }}
+
+      AI_PROVIDER: openai
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4.1-nano' }}
+      OPENAI_MODELS: ${{ secrets.OPENAI_MODELS || 'gpt-4.1-nano,gpt-5-nano,gpt-4o-mini' }}
+      OPENAI_TEMPERATURE: ${{ secrets.OPENAI_TEMPERATURE || '0.45' }}
+      OPENAI_TRANSCRIBE_MODEL: ${{ secrets.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe' }}
+      AI_REQUEST_TIMEOUT_SECONDS: ${{ secrets.AI_REQUEST_TIMEOUT_SECONDS || '25' }}
+      TRANSCRIBE_PROVIDER: ${{ secrets.TRANSCRIBE_PROVIDER || 'deepgram' }}
+      MAX_SCHEDULED_POSTS_PER_DAY: ${{ secrets.MAX_SCHEDULED_POSTS_PER_DAY || '15' }}
+      DEEPGRAM_ENABLED: ${{ github.event.inputs.deepgram_enabled || '1' }}
+      DEEPGRAM_API_KEYS: ${{ secrets.DEEPGRAM_API_KEYS }}
+      DEEPGRAM_MODEL: ${{ secrets.DEEPGRAM_MODEL || 'nova-3' }}
+      DEEPGRAM_LANGUAGE: id
+      DEEPGRAM_TIMEOUT_SECONDS: ${{ secrets.DEEPGRAM_TIMEOUT_SECONDS || '900' }}
+      DEEPGRAM_AUDIO_BITRATE: ${{ secrets.DEEPGRAM_AUDIO_BITRATE || '32k' }}
+      DEEPGRAM_AUDIO_SAMPLE_RATE: ${{ secrets.DEEPGRAM_AUDIO_SAMPLE_RATE || '16000' }}
+
+      INSTAGRAM_IG_USER_ID: ${{ secrets.INSTAGRAM_IG_USER_ID }}
+      INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+      META_APP_ID: ${{ secrets.META_APP_ID }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+      AUTO_REFRESH_INSTAGRAM_TOKEN: ${{ secrets.AUTO_REFRESH_INSTAGRAM_TOKEN || 'true' }}
+      INSTAGRAM_CONTAINER_POLL_SECONDS: ${{ secrets.INSTAGRAM_CONTAINER_POLL_SECONDS || '6' }}
+      INSTAGRAM_CONTAINER_MAX_ATTEMPTS: ${{ secrets.INSTAGRAM_CONTAINER_MAX_ATTEMPTS || '90' }}
+      TOKEN_REFRESH_BEFORE_DAYS: ${{ secrets.TOKEN_REFRESH_BEFORE_DAYS || '10' }}
+      AUTO_DISCOVER_VIDEOS: ${{ secrets.AUTO_DISCOVER_VIDEOS || 'true' }}
+      AUTO_DISCOVER_QUERY: ${{ secrets.AUTO_DISCOVER_QUERY || 'podcast indonesia hari ini|podcast artis indonesia hari ini|podcast artis indonesia terbaru|podcast deddy corbuzier terbaru|podcast vindes terbaru|podcast politik indonesia hari ini' }}
+      AUTO_DISCOVER_DAILY_QUERY: ${{ secrets.AUTO_DISCOVER_DAILY_QUERY || 'podcast indonesia hari ini' }}
+      AUTO_DISCOVER_USE_API: ${{ secrets.AUTO_DISCOVER_USE_API || 'true' }}
+      AUTO_DISCOVER_ALLOW_OAUTH: ${{ secrets.AUTO_DISCOVER_ALLOW_OAUTH || 'false' }}
+      AUTO_DISCOVER_DAILY_SEARCH_ONLY: ${{ secrets.AUTO_DISCOVER_DAILY_SEARCH_ONLY || 'true' }}
+      AUTO_DISCOVER_DAILY_SEARCH_RESULTS: ${{ secrets.AUTO_DISCOVER_DAILY_SEARCH_RESULTS || '7' }}
+      AUTO_DISCOVER_TRENDING_ENABLED: ${{ secrets.AUTO_DISCOVER_TRENDING_ENABLED || 'true' }}
+      AUTO_DISCOVER_TRENDING_CATEGORY_IDS: ${{ secrets.AUTO_DISCOVER_TRENDING_CATEGORY_IDS || '24,22' }}
+      AUTO_DISCOVER_TRENDING_MAX_RESULTS: ${{ secrets.AUTO_DISCOVER_TRENDING_MAX_RESULTS || '25' }}
+      AUTO_DISCOVER_TRENDING_MAX_AGE_HOURS: ${{ secrets.AUTO_DISCOVER_TRENDING_MAX_AGE_HOURS || '36' }}
+      AUTO_DISCOVER_CACHE_SYNC_IMMEDIATE: ${{ secrets.AUTO_DISCOVER_CACHE_SYNC_IMMEDIATE || 'true' }}
+      AUTO_DISCOVER_VALIDATE_URL: ${{ secrets.AUTO_DISCOVER_VALIDATE_URL || 'true' }}
+      AUTO_DISCOVER_MAX_RESULTS: ${{ secrets.AUTO_DISCOVER_MAX_RESULTS || '7' }}
+      AUTO_DISCOVER_ADD_COUNT: ${{ secrets.AUTO_DISCOVER_ADD_COUNT || '7' }}
+      AUTO_DISCOVER_DAILY_QUEUE_LIMIT: ${{ secrets.AUTO_DISCOVER_DAILY_QUEUE_LIMIT || secrets.MAX_SCHEDULED_POSTS_PER_DAY || '15' }}
+      AUTO_DISCOVER_EXPIRE_OLD_QUEUE: ${{ secrets.AUTO_DISCOVER_EXPIRE_OLD_QUEUE || 'true' }}
+      AUTO_DISCOVER_QUEUE_TTL_DAYS: ${{ secrets.AUTO_DISCOVER_QUEUE_TTL_DAYS || '1' }}
+      AUTO_DISCOVER_MIN_DURATION_SECONDS: ${{ secrets.AUTO_DISCOVER_MIN_DURATION_SECONDS || '600' }}
+      AUTO_DISCOVER_MAX_DURATION_SECONDS: ${{ secrets.AUTO_DISCOVER_MAX_DURATION_SECONDS || '10800' }}
+      AUTO_DISCOVER_MIN_VIEWS: ${{ secrets.AUTO_DISCOVER_MIN_VIEWS || '25000' }}
+      AUTO_DISCOVER_MIN_VIEWS_PER_HOUR: ${{ secrets.AUTO_DISCOVER_MIN_VIEWS_PER_HOUR || '500' }}
+      AUTO_DISCOVER_PUBLISHED_AFTER_DAYS: ${{ secrets.AUTO_DISCOVER_PUBLISHED_AFTER_DAYS || '2' }}
+      AUTO_DISCOVER_FALLBACK_MAX_RESULTS: ${{ secrets.AUTO_DISCOVER_FALLBACK_MAX_RESULTS || '12' }}
+      AUTO_DISCOVER_REGION_CODE: ${{ secrets.AUTO_DISCOVER_REGION_CODE || 'ID' }}
+      AUTO_DISCOVER_RELEVANCE_LANGUAGE: ${{ secrets.AUTO_DISCOVER_RELEVANCE_LANGUAGE || 'id' }}
+      AUTO_DISCOVER_CHANNEL_IDS: ${{ secrets.AUTO_DISCOVER_CHANNEL_IDS }}
+      AUTO_DISCOVER_CHANNEL_HANDLES: ${{ secrets.AUTO_DISCOVER_CHANNEL_HANDLES || '@corbuzier|@VINDES|@radityadika|@DanielManantaNetwork|@HASCreative|@podkesmas|@podhub|@Kasisolusi|@TotalPolitik' }}
+      AUTO_DISCOVER_FRESH_UPLOAD_DAYS: ${{ secrets.AUTO_DISCOVER_FRESH_UPLOAD_DAYS || '1' }}
+      AUTO_DISCOVER_CHANNEL_MAX_RESULTS: ${{ secrets.AUTO_DISCOVER_CHANNEL_MAX_RESULTS || '3' }}
+
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY || secrets.YOUTUBE_DATA_API_KEY || secrets.GOOGLE_API_KEY }}
+      YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+      YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS || 'public' }}
+      YOUTUBE_CATEGORY_ID: ${{ secrets.YOUTUBE_CATEGORY_ID || '22' }}
+      YOUTUBE_TAGS: ${{ secrets.YOUTUBE_TAGS || 'podcast,shorts,indonesia' }}
+      YOUTUBE_TITLE_PREFIX: ${{ secrets.YOUTUBE_TITLE_PREFIX }}
+      YOUTUBE_DESCRIPTION_FOOTER: ${{ secrets.YOUTUBE_DESCRIPTION_FOOTER }}
+      YOUTUBE_CUSTOM_THUMBNAIL_ENABLED: ${{ secrets.YOUTUBE_CUSTOM_THUMBNAIL_ENABLED || 'false' }}
+
+      PYTHON_CMD: python
+      CLIPPER_ROOT: clipper
+      MIN_CLIP_SECONDS: "40"
+      MAX_CLIP_SECONDS: "60"
+      OUTPUT_WIDTH: "1080"
+      OUTPUT_HEIGHT: "1920"
+      VIDEO_LANGUAGE: id
+      DOWNLOAD_MAX_HEIGHT: "1080"
+      DOWNLOAD_COMPRESS_CRF: "22"
+      FINAL_RENDER_CRF: "20"
+      VIDEO_QUALITY_PROFILE: ${{ github.event.inputs.quality_profile || secrets.VIDEO_QUALITY_PROFILE || 'standard' }}
+      VIDEO_FRAME_ENABLED: ${{ github.event.inputs.use_frame || secrets.VIDEO_FRAME_ENABLED || 'true' }}
+      VIDEO_FILTER_ENABLED: ${{ github.event.inputs.use_filter || secrets.VIDEO_FILTER_ENABLED || 'true' }}
+      VIDEO_WATERMARK_ENABLED: ${{ github.event.inputs.use_watermark || secrets.VIDEO_WATERMARK_ENABLED || 'true' }}
+      VIDEO_LOWER_THIRD_ENABLED: ${{ secrets.VIDEO_LOWER_THIRD_ENABLED || 'true' }}
+      VIDEO_LOWER_THIRD_BRAND: ${{ secrets.VIDEO_LOWER_THIRD_BRAND || '@clipperemsapro | Podcast Highlight' }}
+      VIDEO_FRAME_ASSET: ${{ secrets.VIDEO_FRAME_ASSET || 'assets/branding/frame-1080x1920.png' }}
+      VIDEO_WATERMARK_ASSET: ${{ secrets.VIDEO_WATERMARK_ASSET || 'assets/branding/logo.png' }}
+      VIDEO_EFFECT_CRF: ${{ secrets.VIDEO_EFFECT_CRF || secrets.FINAL_RENDER_CRF || '27' }}
+      VIDEO_EFFECT_PRESET: ${{ secrets.VIDEO_EFFECT_PRESET || 'veryfast' }}
+      BACKGROUND_MUSIC_ENABLED: ${{ github.event.inputs.background_music_enabled || secrets.BACKGROUND_MUSIC_ENABLED || '1' }}
+      BACKGROUND_MUSIC_FILE: ${{ github.event.inputs.background_music_file || secrets.BACKGROUND_MUSIC_FILE || 'auto' }}
+      BACKGROUND_MUSIC_MAP_FILE: ${{ github.event.inputs.background_music_map_file || secrets.BACKGROUND_MUSIC_MAP_FILE || 'assets/music/music-map.json' }}
+      BACKGROUND_MUSIC_VOLUME: ${{ github.event.inputs.background_music_volume || secrets.BACKGROUND_MUSIC_VOLUME || '0.06' }}
+      BACKGROUND_MUSIC_ORIGINAL_VOLUME: ${{ secrets.BACKGROUND_MUSIC_ORIGINAL_VOLUME || '1.0' }}
+      THUMBNAIL_PILL_TEXT: ${{ secrets.THUMBNAIL_PILL_TEXT || 'Podcast | Highlight | Viral' }}
+      THUMBNAIL_INTRO_ENABLED: ${{ secrets.THUMBNAIL_INTRO_ENABLED || 'true' }}
+      THUMBNAIL_INTRO_SECONDS: ${{ secrets.THUMBNAIL_INTRO_SECONDS || '0.9' }}
+      SUBTITLE_FONT_FAMILY: ${{ github.event.inputs.subtitle_font || secrets.SUBTITLE_FONT_FAMILY || 'Selawik Semibold' }}
+      SUBTITLE_FALLBACK_FONTS: ${{ secrets.SUBTITLE_FALLBACK_FONTS || 'Selawik Semibold,Selawik,DejaVu Sans' }}
+      SUBTITLE_FONT_SIZE: ${{ github.event.inputs.subtitle_font_size || secrets.SUBTITLE_FONT_SIZE || '46' }}
+      SCENE_MODE: ${{ github.event.inputs.scene_mode || secrets.SCENE_MODE || 'podcast' }}
+      SMART_CROP_MODE: ${{ github.event.inputs.scene_mode || secrets.SMART_CROP_MODE || 'podcast' }}
+      CLIP_COUNT: ${{ github.event.inputs.clip_count || secrets.CLIP_COUNT || '1' }}
+      SUBTITLE_MIN_FONT_SIZE: ${{ secrets.SUBTITLE_MIN_FONT_SIZE || '34' }}
+      SUBTITLE_MARGIN_V: ${{ github.event.inputs.subtitle_margin_v || '550' }}
+      SUBTITLE_MARGIN_H: ${{ github.event.inputs.subtitle_margin_h || secrets.SUBTITLE_MARGIN_H || '180' }}
+      SUBTITLE_MAX_LINES: ${{ secrets.SUBTITLE_MAX_LINES || '2' }}
+      SUBTITLE_PRIMARY_COLOUR: ${{ secrets.SUBTITLE_PRIMARY_COLOUR || '&H0000FFFF' }}
+      SUBTITLE_OUTLINE_COLOUR: ${{ secrets.SUBTITLE_OUTLINE_COLOUR || '&H00111111' }}
+      SUBTITLE_SHADOW_COLOUR: ${{ secrets.SUBTITLE_SHADOW_COLOUR || '&H66000000' }}
+      SUBTITLE_OUTLINE: ${{ secrets.SUBTITLE_OUTLINE || '4' }}
+      SUBTITLE_SHADOW: ${{ secrets.SUBTITLE_SHADOW || '1' }}
+      SUBTITLE_BOLD: ${{ secrets.SUBTITLE_BOLD || '1' }}
+      SMART_CROP_ENABLED: "1"
+      TRANSCRIPT_REVIEW_ENABLED: "1"
+      TRANSCRIPT_REVIEW_REQUIRED: ${{ secrets.TRANSCRIPT_REVIEW_REQUIRED || '0' }}
+      VIRAL_STRATEGY_ENABLED: ${{ secrets.VIRAL_STRATEGY_ENABLED || '1' }}
+      VIRAL_STRATEGY_REQUIRED: ${{ secrets.VIRAL_STRATEGY_REQUIRED || '0' }}
+      AI_CANDIDATE_MAX_COUNT: ${{ secrets.AI_CANDIDATE_MAX_COUNT || '8' }}
+      AI_CANDIDATE_MAX_CHARS: ${{ secrets.AI_CANDIDATE_MAX_CHARS || '7000' }}
+      MIN_VIRAL_SCORE_TO_PUBLISH: ${{ secrets.MIN_VIRAL_SCORE_TO_PUBLISH || '55' }}
+      FORCE_PUBLISH: ${{ secrets.FORCE_PUBLISH || '1' }}
+
+      YTDLP_JS_RUNTIMES: node
+      YTDLP_REMOTE_COMPONENTS: ejs:github
+      YTDLP_COOKIES_TXT: ${{ secrets.YTDLP_COOKIES_TXT }}
+      YTDLP_USER_AGENT: ${{ secrets.YTDLP_USER_AGENT }}
+      YTDLP_REFERER: https://www.youtube.com/
+
+      YTDLP_SLEEP_REQUESTS: "5"
+      YTDLP_SLEEP_INTERVAL: "8"
+      YTDLP_MAX_SLEEP_INTERVAL: "18"
+      YTDLP_RETRIES: "3"
+      YTDLP_FRAGMENT_RETRIES: "3"
+      YTDLP_RETRY_SLEEP: "exp=10:60"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show trigger info
+        shell: bash
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Schedule: ${{ github.event.schedule }}"
+          echo "UTC time: $(date -u)"
+          echo "Branch/ref: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+
+      - name: Setup Node with cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Restore Node modules cache
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{ runner.arch }}-node20-
+
+      - name: Fail fast required secrets
+        shell: bash
+        run: |
+          missing=0
+
+          remote_required="$(printf '%s' "$REMOTE_UPLOAD_REQUIRED" | tr '[:upper:]' '[:lower:]')"
+          remote_missing_level="warning"
+          if [ "$remote_required" = "true" ] || [ "$remote_required" = "1" ]; then
+            remote_missing_level="error"
+          fi
+
+          for key in PUBLIC_BASE_URL SFTP_HOST SFTP_USER SFTP_REMOTE_DIR
+          do
+            if [ -z "${!key}" ]; then
+              echo "::$remote_missing_level::$key belum diisi di GitHub Secrets"
+              if [ "$remote_missing_level" = "error" ]; then
+                missing=1
+              fi
+            fi
+          done
+          if [ -z "$SFTP_PASSWORD" ] && [ -z "$SFTP_PRIVATE_KEY" ]; then
+            echo "::$remote_missing_level::SFTP_PASSWORD atau SFTP_PRIVATE_KEY belum diisi di GitHub Secrets"
+            if [ "$remote_missing_level" = "error" ]; then
+              missing=1
+            fi
+          fi
+
+          if [ "$INSTAGRAM_UPLOAD_ENABLED" = "true" ]; then
+            for key in INSTAGRAM_IG_USER_ID INSTAGRAM_ACCESS_TOKEN
+            do
+              if [ -z "${!key}" ]; then
+                echo "::warning::$key belum diisi di GitHub Secrets. Instagram akan dilewati; workflow tetap fokus YouTube."
+              fi
+            done
+
+            if [ "$AUTO_REFRESH_INSTAGRAM_TOKEN" = "true" ]; then
+              for key in META_APP_ID META_APP_SECRET
+              do
+                if [ -z "${!key}" ]; then
+                  echo "::warning::$key belum diisi untuk auto-refresh Instagram. Upload YouTube tetap lanjut."
+                fi
+              done
+            fi
+          fi
+
+          if [ "$FACEBOOK_UPLOAD_ENABLED" = "true" ]; then
+            if [ -z "$FACEBOOK_PAGE_ID" ]; then
+              echo "::warning::FACEBOOK_PAGE_ID belum diisi di GitHub Secrets. Facebook akan dilewati; workflow tetap fokus YouTube."
+            fi
+
+            if [ -z "$FACEBOOK_PAGE_ACCESS_TOKEN" ] && [ -z "$FACEBOOK_USER_ACCESS_TOKEN" ]; then
+              echo "::warning::FACEBOOK_PAGE_ACCESS_TOKEN atau FACEBOOK_USER_ACCESS_TOKEN belum diisi. Facebook akan dilewati; workflow tetap fokus YouTube."
+            fi
+          fi
+
+          if [ "$YOUTUBE_UPLOAD_ENABLED" = "true" ]; then
+            for key in YOUTUBE_CLIENT_ID YOUTUBE_CLIENT_SECRET YOUTUBE_REFRESH_TOKEN
+            do
+              if [ -z "${!key}" ]; then
+                echo "::error::$key belum diisi di GitHub Secrets"
+                missing=1
+              fi
+            done
+          fi
+
+          if [ "$TIKTOK_UPLOAD_ENABLED" = "true" ]; then
+            for key in TIKTOK_CLIENT_KEY TIKTOK_CLIENT_SECRET
+            do
+              if [ -z "${!key}" ]; then
+                echo "::warning::$key belum diisi di GitHub Secrets. TikTok akan dilewati; workflow tetap fokus YouTube."
+              fi
+            done
+
+            if [ -z "$TIKTOK_ACCESS_TOKEN" ] && [ -z "$TIKTOK_REFRESH_TOKEN" ]; then
+              echo "::warning::TIKTOK_ACCESS_TOKEN atau TIKTOK_REFRESH_TOKEN belum diisi. TikTok akan dilewati; workflow tetap fokus YouTube."
+            fi
+          fi
+
+          if [ "$THREADS_UPLOAD_ENABLED" = "true" ] && [ -z "$THREADS_ACCESS_TOKEN" ]; then
+            echo "::warning::THREADS_ACCESS_TOKEN belum diisi. Threads akan dilewati; workflow tetap fokus YouTube."
+          fi
+
+          if [ "$AI_PROVIDER" = "openai" ] && [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::AI_PROVIDER=openai tapi OPENAI_API_KEY belum diisi."
+            missing=1
+          fi
+
+          if [ "$DEEPGRAM_ENABLED" != "1" ] || [ -z "$DEEPGRAM_API_KEYS" ]; then
+            echo "::error::DEEPGRAM_ENABLED harus 1 dan DEEPGRAM_API_KEYS wajib diisi"
+            missing=1
+          fi
+
+          exit "$missing"
+
+      - name: Validate social upload toggles
+        shell: bash
+        run: |
+          normalize_bool() {
+            case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+              1|true|yes|on) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+
+          if normalize_bool "$INSTAGRAM_UPLOAD_ENABLED"; then
+            if [ -n "$INSTAGRAM_IG_USER_ID" ] && [ -n "$INSTAGRAM_ACCESS_TOKEN" ]; then
+              echo "INSTAGRAM_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+            else
+              echo "::notice::Instagram credential token belum lengkap; INSTAGRAM_UPLOAD_ENABLED dimatikan untuk run ini."
+              echo "INSTAGRAM_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "INSTAGRAM_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+          if normalize_bool "$FACEBOOK_UPLOAD_ENABLED"; then
+            if [ -n "$FACEBOOK_PAGE_ID" ] && { [ -n "$FACEBOOK_PAGE_ACCESS_TOKEN" ] || [ -n "$FACEBOOK_USER_ACCESS_TOKEN" ]; }; then
+              echo "FACEBOOK_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+            else
+              echo "::notice::Facebook credential belum lengkap; FACEBOOK_UPLOAD_ENABLED dimatikan untuk run ini."
+              echo "FACEBOOK_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "FACEBOOK_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+          if normalize_bool "$TIKTOK_UPLOAD_PAUSED"; then
+            echo "::notice::TikTok upload dipause sampai app disetujui; TIKTOK_UPLOAD_ENABLED dimatikan untuk run ini."
+            echo "TIKTOK_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+          elif normalize_bool "$TIKTOK_UPLOAD_ENABLED"; then
+            if [ -n "$TIKTOK_ACCESS_TOKEN" ] || [ -n "$TIKTOK_REFRESH_TOKEN" ]; then
+              echo "TIKTOK_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+            else
+              echo "::notice::TikTok credential token belum ada; TIKTOK_UPLOAD_ENABLED dimatikan untuk run ini."
+              echo "TIKTOK_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "TIKTOK_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+          if normalize_bool "$THREADS_UPLOAD_ENABLED"; then
+            if [ -n "$THREADS_ACCESS_TOKEN" ]; then
+              echo "THREADS_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+            else
+              echo "::notice::Threads access token belum ada; THREADS_UPLOAD_ENABLED dimatikan untuk run ini."
+              echo "THREADS_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "THREADS_UPLOAD_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Refresh Instagram token if possible
+        shell: bash
+        run: |
+          if [ "$INSTAGRAM_UPLOAD_ENABLED" != "true" ]; then
+            echo "Instagram upload disabled."
+            exit 0
+          fi
+
+          if ! node src/instagram-token-fastcheck.js --github-env; then
+            echo "::warning::Instagram token check/refresh gagal. Upload Instagram tetap aktif dan akan dicoba saat publish."
+            echo "INSTAGRAM_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist refreshed Instagram token secret
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "$INSTAGRAM_UPLOAD_ENABLED" != "true" ]; then
+            echo "Instagram upload disabled; skip secret persist."
+            exit 0
+          fi
+
+          if [ "${INSTAGRAM_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Instagram token secret unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::Instagram token refreshed for this run, but GH_REPO_SECRET_TOKEN is not set. Update GitHub Secret INSTAGRAM_ACCESS_TOKEN manually or add GH_REPO_SECRET_TOKEN."
+            exit 0
+          fi
+
+          printf '%s' "$INSTAGRAM_ACCESS_TOKEN" | gh secret set INSTAGRAM_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+          echo "Instagram token GitHub Secret updated."
+
+      - name: Refresh Facebook token if possible
+        shell: bash
+        run: |
+          if [ "$FACEBOOK_UPLOAD_ENABLED" != "true" ]; then
+            echo "Facebook upload disabled."
+            exit 0
+          fi
+
+          if ! node src/facebook-token-fastcheck.js --github-env; then
+            echo "::warning::Facebook token check/refresh gagal. Upload Facebook tetap aktif dan akan dicoba saat publish."
+            echo "FACEBOOK_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist refreshed Facebook token secret
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "$FACEBOOK_UPLOAD_ENABLED" != "true" ]; then
+            echo "Facebook upload disabled; skip secret persist."
+            exit 0
+          fi
+
+          if [ "${FACEBOOK_TOKEN_REFRESHED:-false}" != "true" ] && [ "${FACEBOOK_USER_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Facebook token secrets unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::Facebook token refreshed for this run, but GH_REPO_SECRET_TOKEN is not set. Update GitHub Secrets manually or add GH_REPO_SECRET_TOKEN."
+            exit 0
+          fi
+
+          if [ "${FACEBOOK_TOKEN_REFRESHED:-false}" = "true" ]; then
+            printf '%s' "$FACEBOOK_PAGE_ACCESS_TOKEN" | gh secret set FACEBOOK_PAGE_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "Facebook Page token GitHub Secret updated."
+          fi
+
+          if [ "${FACEBOOK_USER_TOKEN_REFRESHED:-false}" = "true" ] && [ -n "${FACEBOOK_USER_ACCESS_TOKEN:-}" ]; then
+            printf '%s' "$FACEBOOK_USER_ACCESS_TOKEN" | gh secret set FACEBOOK_USER_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "Facebook user token GitHub Secret updated."
+          fi
+
+      - name: Setup Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: clipper/requirements.txt
+
+      - name: Restore Python virtualenv cache
+        id: python-venv-cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: python-venv-${{ runner.os }}-${{ runner.arch }}-py311-${{ hashFiles('clipper/requirements.txt') }}-v2
+          restore-keys: |
+            python-venv-${{ runner.os }}-${{ runner.arch }}-py311-
+
+      - name: Prepare Python virtualenv
+        shell: bash
+        run: |
+          set -euo pipefail
+          rebuilt=false
+          if [ ! -x .venv/bin/python ]; then
+            rm -rf .venv
+            python -m venv .venv
+            rebuilt=true
+          fi
+          echo "PYTHON_VENV_REBUILT=$rebuilt" >> "$GITHUB_ENV"
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+          .venv/bin/python -m pip --version
+
+      - name: Check FFmpeg tools
+        id: ffmpeg-tools
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          if command -v ffmpeg >/dev/null 2>&1 \
+            && command -v ffprobe >/dev/null 2>&1; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "FFmpeg dan ffprobe sudah tersedia di runner."
+            ffmpeg -version | head -n 1
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "FFmpeg/ffprobe belum lengkap. APT install akan dipakai."
+          fi
+
+      - name: Prepare APT package cache
+        if: steps.ffmpeg-tools.outputs.ready != 'true'
+        shell: bash
+        timeout-minutes: 2
+        run: |
+          sudo mkdir -p /var/cache/apt/archives/partial
+          sudo chmod -R a+rwx /var/cache/apt/archives
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/01keep-debs
+          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee -a /etc/apt/apt.conf.d/01keep-debs
+
+      - name: Cache APT packages
+        if: steps.ffmpeg-tools.outputs.ready != 'true'
+        uses: actions/cache@v4
+        timeout-minutes: 3
+        with:
+          path: /var/cache/apt/archives
+          key: apt-ffmpeg-${{ runner.os }}-${{ runner.arch }}-v1
+          restore-keys: |
+            apt-ffmpeg-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install FFmpeg
+        if: steps.ffmpeg-tools.outputs.ready != 'true'
+        shell: bash
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          sudo apt-get \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            update
+          sudo apt-get \
+            -o Acquire::Retries=2 \
+            -o Acquire::http::Timeout=20 \
+            -o Acquire::https::Timeout=20 \
+            install -y --no-install-recommends ffmpeg
+          sudo chmod -R a+rwx /var/cache/apt/archives || true
+          ffmpeg -version | head -n 1
+
+      - name: Restore Selawik font cache
+        id: selawik-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/fonts/selawik
+          key: selawik-fonts-v1
+
+      - name: Register Selawik font
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.local/share/fonts/selawik
+          if ! ls ~/.local/share/fonts/selawik/*.ttf >/dev/null 2>&1; then
+            curl -fsSL \
+              https://github.com/microsoft/Selawik/releases/download/1.01/Selawik_Release.zip \
+              -o /tmp/Selawik_Release.zip
+            python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          out_dir = Path.home() / ".local/share/fonts/selawik"
+          out_dir.mkdir(parents=True, exist_ok=True)
+          with ZipFile("/tmp/Selawik_Release.zip") as archive:
+              for info in archive.infolist():
+                  if info.filename.lower().endswith(".ttf"):
+                      target = out_dir / Path(info.filename).name
+                      target.write_bytes(archive.read(info))
+          PY
+          fi
+          fc-cache -f ~/.local/share/fonts/selawik
+          fc-match "Selawik Semibold"
+
+      - name: Restore automation state
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/history.json
+            data/jobs.json
+            data/videos.json
+            generated/metadata
+            generated/logs
+          key: podcast-history-${{ github.run_id }}
+          restore-keys: |
+            podcast-history-
+
+      - name: Install Node dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Validate YouTube token if possible
+        shell: bash
+        run: |
+          if [ "$YOUTUBE_UPLOAD_ENABLED" != "true" ]; then
+            echo "YouTube upload disabled."
+            exit 0
+          fi
+
+          node src/youtube-check.js
+
+      - name: Refresh TikTok token if possible
+        shell: bash
+        run: |
+          if [ "$TIKTOK_UPLOAD_ENABLED" != "true" ]; then
+            echo "TikTok upload disabled."
+            exit 0
+          fi
+
+          if ! node src/tiktok-token-fastcheck.js --github-env; then
+            echo "::warning::TikTok token check/refresh gagal. Upload TikTok tetap aktif dan akan dicoba saat publish."
+            echo "TIKTOK_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist refreshed TikTok token secrets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "$TIKTOK_UPLOAD_ENABLED" != "true" ]; then
+            echo "TikTok upload disabled; skip secret persist."
+            exit 0
+          fi
+
+          if [ "${TIKTOK_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "TikTok token secrets unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::TikTok token refreshed for this run, but GH_REPO_SECRET_TOKEN is not set. Update GitHub Secrets manually or add GH_REPO_SECRET_TOKEN."
+            exit 0
+          fi
+
+          if [ -n "${TIKTOK_ACCESS_TOKEN:-}" ]; then
+            printf '%s' "$TIKTOK_ACCESS_TOKEN" | gh secret set TIKTOK_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "TikTok access token GitHub Secret updated."
+          fi
+
+          if [ -n "${TIKTOK_REFRESH_TOKEN:-}" ]; then
+            printf '%s' "$TIKTOK_REFRESH_TOKEN" | gh secret set TIKTOK_REFRESH_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "TikTok refresh token GitHub Secret updated."
+          fi
+
+          if [ -n "${TIKTOK_OPEN_ID:-}" ]; then
+            printf '%s' "$TIKTOK_OPEN_ID" | gh secret set TIKTOK_OPEN_ID --repo "$GITHUB_REPOSITORY"
+          fi
+
+          if [ -n "${TIKTOK_SCOPE:-}" ]; then
+            printf '%s' "$TIKTOK_SCOPE" | gh secret set TIKTOK_SCOPE --repo "$GITHUB_REPOSITORY"
+          fi
+
+      - name: Refresh Threads token if possible
+        shell: bash
+        run: |
+          if [ "$THREADS_UPLOAD_ENABLED" != "true" ]; then
+            echo "Threads upload disabled."
+            exit 0
+          fi
+
+          if ! node src/threads-token-fastcheck.js --github-env; then
+            echo "::warning::Threads token check/refresh gagal. Upload Threads tetap aktif dan akan dicoba saat publish."
+            echo "THREADS_UPLOAD_ENABLED=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Persist refreshed Threads token secret
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_REPO_SECRET_TOKEN }}
+        run: |
+          if [ "$THREADS_UPLOAD_ENABLED" != "true" ]; then
+            echo "Threads upload disabled; skip secret persist."
+            exit 0
+          fi
+
+          if [ "${THREADS_TOKEN_REFRESHED:-false}" != "true" ]; then
+            echo "Threads token secret unchanged."
+            exit 0
+          fi
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::Threads token refreshed for this run, but GH_REPO_SECRET_TOKEN is not set. Update GitHub Secret THREADS_ACCESS_TOKEN manually or add GH_REPO_SECRET_TOKEN."
+            exit 0
+          fi
+
+          printf '%s' "$THREADS_ACCESS_TOKEN" | gh secret set THREADS_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+          if [ -n "${THREADS_TOKEN_ISSUED_AT:-}" ]; then
+            printf '%s' "$THREADS_TOKEN_ISSUED_AT" | gh secret set THREADS_TOKEN_ISSUED_AT --repo "$GITHUB_REPOSITORY"
+          fi
+          echo "Threads token GitHub Secret updated."
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          if [ "${PYTHON_VENV_REBUILT:-false}" = "true" ] || [ "${{ steps.python-venv-cache.outputs.cache-hit }}" != "true" ]; then
+            python -m pip install --upgrade pip wheel setuptools
+          fi
+          python -m pip install --prefer-binary -r clipper/requirements.txt
+
+      - name: Update yt-dlp
+        shell: bash
+        run: |
+          python -m pip install --upgrade --prefer-binary yt-dlp
+          yt-dlp --version
+
+      - name: Write YouTube cookies
+        if: ${{ env.YTDLP_COOKIES_TXT != '' }}
+        shell: bash
+        run: |
+          mkdir -p clipper
+          printf '%s' "$YTDLP_COOKIES_TXT" > clipper/cookies.txt
+
+          if grep -q '\\n' clipper/cookies.txt; then
+            echo "Detected literal \\n in cookies secret. Converting to real newlines..."
+            perl -0pi -e 's/\\n/\n/g' clipper/cookies.txt
+          fi
+
+          sed -i 's/\r$//' clipper/cookies.txt
+          echo "YTDLP_COOKIES_FILE=cookies.txt" >> "$GITHUB_ENV"
+
+      - name: Validate YouTube cookies safely
+        if: ${{ env.YTDLP_COOKIES_TXT != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          COOKIE_ROWS=$(grep -Ei "youtube|google" clipper/cookies.txt | wc -l || true)
+          echo "YouTube/Google cookie rows: $COOKIE_ROWS"
+
+          if [ "$COOKIE_ROWS" -eq 0 ]; then
+            echo "::error::cookies.txt tidak punya baris youtube/google. Secret YTDLP_COOKIES_TXT kemungkinan kosong, header doang, atau salah format."
+            exit 1
+          fi
+
+          FIRST_LINE=$(head -n 1 clipper/cookies.txt || true)
+          if [[ "$FIRST_LINE" != "# Netscape HTTP Cookie File"* && "$FIRST_LINE" != "# HTTP Cookie File"* ]]; then
+            echo "::warning::Baris pertama cookies bukan format standar Netscape/HTTP Cookie File."
+          fi
+
+      - name: Debug effective config
+        if: ${{ github.event_name == 'workflow_dispatch' || vars.DEBUG_WORKFLOW == 'true' }}
+        shell: bash
+        run: |
+          echo "GRAPH_API_VERSION=$GRAPH_API_VERSION"
+          echo "PUBLIC_BASE_URL=$PUBLIC_BASE_URL"
+          echo "UPLOAD_DRIVER=$UPLOAD_DRIVER"
+          echo "SFTP_REMOTE_DIR=$SFTP_REMOTE_DIR"
+          echo "INSTAGRAM_UPLOAD_ENABLED=$INSTAGRAM_UPLOAD_ENABLED"
+          echo "INSTAGRAM_REEL_UPLOAD_METHOD=$INSTAGRAM_REEL_UPLOAD_METHOD"
+          echo "YOUTUBE_UPLOAD_ENABLED=$YOUTUBE_UPLOAD_ENABLED"
+          if [ -n "$YOUTUBE_API_KEY" ]; then
+            echo "YOUTUBE_API_KEY=configured"
+          else
+            echo "YOUTUBE_API_KEY=not_set"
+          fi
+          echo "TIKTOK_UPLOAD_PAUSED=$TIKTOK_UPLOAD_PAUSED"
+          echo "TIKTOK_UPLOAD_ENABLED=$TIKTOK_UPLOAD_ENABLED"
+          echo "TIKTOK_PUBLISH_MODE=$TIKTOK_PUBLISH_MODE"
+          echo "TIKTOK_PRIVACY_LEVEL=$TIKTOK_PRIVACY_LEVEL"
+          echo "THREADS_UPLOAD_ENABLED=$THREADS_UPLOAD_ENABLED"
+          echo "THREADS_USER_ID=$THREADS_USER_ID"
+          echo "THREADS_API_VERSION=$THREADS_API_VERSION"
+          echo "DEEPGRAM_ENABLED=$DEEPGRAM_ENABLED"
+          echo "AI_PROVIDER=$AI_PROVIDER"
+          echo "OPENAI_MODEL=$OPENAI_MODEL"
+          echo "OPENAI_MODELS=$OPENAI_MODELS"
+          echo "OPENAI_TRANSCRIBE_MODEL=$OPENAI_TRANSCRIBE_MODEL"
+          echo "BACKGROUND_MUSIC_ENABLED=$BACKGROUND_MUSIC_ENABLED"
+          echo "BACKGROUND_MUSIC_FILE=$BACKGROUND_MUSIC_FILE"
+          echo "BACKGROUND_MUSIC_MAP_FILE=$BACKGROUND_MUSIC_MAP_FILE"
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY=configured"
+          else
+            echo "OPENAI_API_KEY=not_set"
+          fi
+          echo "AUTO_DISCOVER_QUERY=$AUTO_DISCOVER_QUERY"
+          echo "AUTO_DISCOVER_DAILY_QUERY=$AUTO_DISCOVER_DAILY_QUERY"
+          echo "AUTO_DISCOVER_USE_API=$AUTO_DISCOVER_USE_API"
+          echo "AUTO_DISCOVER_ALLOW_OAUTH=$AUTO_DISCOVER_ALLOW_OAUTH"
+          echo "AUTO_DISCOVER_DAILY_SEARCH_ONLY=$AUTO_DISCOVER_DAILY_SEARCH_ONLY"
+          echo "AUTO_DISCOVER_DAILY_SEARCH_RESULTS=$AUTO_DISCOVER_DAILY_SEARCH_RESULTS"
+          echo "AUTO_DISCOVER_TRENDING_ENABLED=$AUTO_DISCOVER_TRENDING_ENABLED"
+          echo "AUTO_DISCOVER_TRENDING_CATEGORY_IDS=$AUTO_DISCOVER_TRENDING_CATEGORY_IDS"
+          echo "AUTO_DISCOVER_TRENDING_MAX_RESULTS=$AUTO_DISCOVER_TRENDING_MAX_RESULTS"
+          echo "AUTO_DISCOVER_TRENDING_MAX_AGE_HOURS=$AUTO_DISCOVER_TRENDING_MAX_AGE_HOURS"
+          echo "AUTO_DISCOVER_VALIDATE_URL=$AUTO_DISCOVER_VALIDATE_URL"
+          echo "AUTO_DISCOVER_ADD_COUNT=$AUTO_DISCOVER_ADD_COUNT"
+          echo "AUTO_DISCOVER_DAILY_QUEUE_LIMIT=$AUTO_DISCOVER_DAILY_QUEUE_LIMIT"
+          echo "AUTO_DISCOVER_EXPIRE_OLD_QUEUE=$AUTO_DISCOVER_EXPIRE_OLD_QUEUE"
+          echo "AUTO_DISCOVER_QUEUE_TTL_DAYS=$AUTO_DISCOVER_QUEUE_TTL_DAYS"
+          echo "AUTO_DISCOVER_MIN_VIEWS=$AUTO_DISCOVER_MIN_VIEWS"
+          echo "AUTO_DISCOVER_MIN_VIEWS_PER_HOUR=$AUTO_DISCOVER_MIN_VIEWS_PER_HOUR"
+          echo "AUTO_DISCOVER_PUBLISHED_AFTER_DAYS=$AUTO_DISCOVER_PUBLISHED_AFTER_DAYS"
+          echo "AUTO_DISCOVER_FALLBACK_MAX_RESULTS=$AUTO_DISCOVER_FALLBACK_MAX_RESULTS"
+          echo "AUTO_DISCOVER_FRESH_UPLOAD_DAYS=$AUTO_DISCOVER_FRESH_UPLOAD_DAYS"
+          echo "AUTO_DISCOVER_CHANNEL_MAX_RESULTS=$AUTO_DISCOVER_CHANNEL_MAX_RESULTS"
+          echo "VIDEO_QUALITY_PROFILE=$VIDEO_QUALITY_PROFILE"
+          echo "VIDEO_FRAME_ENABLED=$VIDEO_FRAME_ENABLED"
+          echo "VIDEO_FILTER_ENABLED=$VIDEO_FILTER_ENABLED"
+          echo "VIDEO_WATERMARK_ENABLED=$VIDEO_WATERMARK_ENABLED"
+          echo "VIDEO_LOWER_THIRD_ENABLED=$VIDEO_LOWER_THIRD_ENABLED"
+          echo "SUBTITLE_FONT_FAMILY=$SUBTITLE_FONT_FAMILY"
+          echo "SUBTITLE_FONT_SIZE=$SUBTITLE_FONT_SIZE"
+          echo "SUBTITLE_MARGIN_V=$SUBTITLE_MARGIN_V"
+          echo "SUBTITLE_MARGIN_H=$SUBTITLE_MARGIN_H"
+          echo "SUBTITLE_MAX_LINES=$SUBTITLE_MAX_LINES"
+          echo "YTDLP_COOKIES_FILE=${YTDLP_COOKIES_FILE:-not_set}"
+          echo "YTDLP_JS_RUNTIMES=$YTDLP_JS_RUNTIMES"
+          echo "YTDLP_REMOTE_COMPONENTS=$YTDLP_REMOTE_COMPONENTS"
+          echo "YTDLP_REFERER=$YTDLP_REFERER"
+          echo "YTDLP_SLEEP_REQUESTS=$YTDLP_SLEEP_REQUESTS"
+          echo "YTDLP_SLEEP_INTERVAL=$YTDLP_SLEEP_INTERVAL"
+          echo "YTDLP_MAX_SLEEP_INTERVAL=$YTDLP_MAX_SLEEP_INTERVAL"
+          echo "YTDLP_RETRIES=$YTDLP_RETRIES"
+          echo "YTDLP_FRAGMENT_RETRIES=$YTDLP_FRAGMENT_RETRIES"
+
+          if [ -n "$YTDLP_USER_AGENT" ]; then
+            echo "YTDLP_USER_AGENT=configured"
+          else
+            echo "YTDLP_USER_AGENT=not_set"
+          fi
+
+      - name: Test YouTube cookies before automation
+        if: ${{ env.YTDLP_COOKIES_TXT != '' && (github.event_name == 'workflow_dispatch' || vars.TEST_YOUTUBE_COOKIES == 'true') }}
+        working-directory: clipper
+        shell: bash
+        env:
+          TEST_URL: ${{ github.event.inputs.url || 'https://www.youtube.com/watch?v=CojxHgbtM_Y' }}
+        run: |
+          echo "Testing yt-dlp cookies with URL:"
+          echo "$TEST_URL"
+
+          UA_ARGS=()
+          if [ -n "$YTDLP_USER_AGENT" ]; then
+            UA_ARGS+=(--user-agent "$YTDLP_USER_AGENT")
+          fi
+
+          yt-dlp \
+            --cookies cookies.txt \
+            "${UA_ARGS[@]}" \
+            --referer "$YTDLP_REFERER" \
+            --js-runtimes "$YTDLP_JS_RUNTIMES" \
+            --remote-components "$YTDLP_REMOTE_COMPONENTS" \
+            --sleep-requests "$YTDLP_SLEEP_REQUESTS" \
+            --sleep-interval "$YTDLP_SLEEP_INTERVAL" \
+            --max-sleep-interval "$YTDLP_MAX_SLEEP_INTERVAL" \
+            --retries "$YTDLP_RETRIES" \
+            --fragment-retries "$YTDLP_FRAGMENT_RETRIES" \
+            --retry-sleep "$YTDLP_RETRY_SLEEP" \
+            --skip-download \
+            --print title \
+            "$TEST_URL"
+
+      - name: Check configuration
+        run: npm run check -- --offline
+
+      - name: Generate and publish
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          THEME: ${{ github.event.inputs.theme || 'auto' }}
+          URL: ${{ github.event.inputs.url || '' }}
+          RANGE: ${{ github.event.inputs.range || '' }}
+          FORCE_REPROCESS: ${{ github.event.inputs.force_reprocess || 'false' }}
+        run: |
+          args=(--publish --theme "$THEME")
+
+          # Pakai --scheduled hanya saat trigger dari cron schedule.
+          # Manual run tidak memakai --scheduled agar tidak kena guard already_published_today.
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            args+=(--scheduled)
+          fi
+
+          if [ -n "$URL" ]; then
+            args+=(--url "$URL")
+          fi
+
+          if [ -n "$RANGE" ]; then
+            args+=(--range "$RANGE")
+          fi
+
+          if [ "$FORCE_REPROCESS" = "true" ] || [ "$FORCE_REPROCESS" = "1" ]; then
+            args+=(--force-reprocess)
+          fi
+
+          args+=(--quality "$VIDEO_QUALITY_PROFILE")
+          args+=(--clip-count "$CLIP_COUNT")
+          args+=(--ai-provider "$AI_PROVIDER")
+          args+=(--use-frame "$VIDEO_FRAME_ENABLED")
+          args+=(--use-filter "$VIDEO_FILTER_ENABLED")
+          args+=(--use-watermark "$VIDEO_WATERMARK_ENABLED")
+          args+=(--subtitle-font "$SUBTITLE_FONT_FAMILY")
+          args+=(--subtitle-font-size "$SUBTITLE_FONT_SIZE")
+          args+=(--subtitle-margin-v "$SUBTITLE_MARGIN_V")
+          args+=(--subtitle-margin-h "$SUBTITLE_MARGIN_H")
+
+          echo "Running command:"
+          printf 'node src/run.js'
+          printf ' %q' "${args[@]}"
+          printf '\n'
+
+          node src/run.js "${args[@]}"

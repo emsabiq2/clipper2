@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0b0d10">
+    <title>Clipper Command Center</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0d10'/%3E%3Cpath d='M15 18h34v8H15zM15 30h24v8H15zM15 42h34v4H15z' fill='%232dd4bf'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="bgLayer" aria-hidden="true"></div>
+
+    <section id="authOverlay" class="authOverlay active" aria-hidden="false">
+      <form id="authForm" class="loginPanel">
+        <div class="loginBrand">
+          <span class="brandMark">CE</span>
+          <div>
+            <p class="kicker">Operator Access</p>
+            <h1>Clipper Command</h1>
+          </div>
+        </div>
+        <div class="loginSignal">
+          <span>Queue Guard</span>
+          <span>Publish Monitor</span>
+          <span>Trend Ops</span>
+        </div>
+        <label class="field">
+          <span>Dashboard PIN</span>
+          <input id="authPin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+        </label>
+        <button class="btn primary" type="submit">Masuk</button>
+        <p id="authError" class="formError" role="alert"></p>
+      </form>
+    </section>
+
+    <main class="appShell">
+      <header class="appHeader panel">
+        <div class="brandBlock">
+          <span class="brandMark">CE</span>
+          <div>
+            <p class="kicker">Clipper Emsa Pro</p>
+            <h1>Automation Command Center</h1>
+          </div>
+        </div>
+        <div class="headerStatus">
+          <p id="configLine">Memuat konfigurasi...</p>
+          <span id="liveClock" class="clock">--:--</span>
+        </div>
+        <nav class="toolbar" aria-label="Dashboard actions">
+          <button id="preflightBtn" class="btn ghost small" type="button">Preflight</button>
+          <button id="refreshBtn" class="btn ghost small" type="button">Refresh</button>
+          <button id="logoutBtn" class="btn ghost small" type="button">Logout</button>
+        </nav>
+      </header>
+
+      <section id="metrics" class="metricGrid" aria-label="Operational metrics"></section>
+
+      <section class="commandLayout">
+        <section class="panel runPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Live Process</p>
+              <h2 id="workflowTitle">Menunggu proses</h2>
+            </div>
+            <div class="runTools">
+              <span id="runBadge" class="runBadge idle">Idle</span>
+              <a id="runLink" class="btn ghost small" href="#" target="_blank" rel="noreferrer" hidden>Console</a>
+            </div>
+          </div>
+          <p id="workflowMeta" class="subtle">Belum ada workflow yang berjalan.</p>
+          <div class="progressLine" aria-hidden="true">
+            <span id="progressBar"></span>
+          </div>
+          <div class="runDetail">
+            <strong id="runStatus">Idle</strong>
+            <span id="runDetail">Siap menerima link YouTube atau menjalankan queue.</span>
+            <b id="runProgressLabel">0%</b>
+          </div>
+          <div id="workflowGraph" class="processRail"></div>
+        </section>
+
+        <aside class="panel decisionPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Ops Brief</p>
+              <h2>Signal Hari Ini</h2>
+            </div>
+            <span id="queueGaugeLabel" class="badge">0/15</span>
+          </div>
+          <div class="queueGauge">
+            <span id="queueGaugeFill"></span>
+          </div>
+          <div id="insightList" class="insightList"></div>
+        </aside>
+      </section>
+
+      <section class="analyticsGrid">
+        <section class="panel chartPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Trendline</p>
+              <h2>Publish 7 Hari</h2>
+            </div>
+            <span id="trendCaption" class="badge">0 total</span>
+          </div>
+          <svg id="trendChart" class="trendChart" role="img" aria-label="Trend publish tujuh hari"></svg>
+        </section>
+
+        <section class="panel chartPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Daily Flow</p>
+              <h2>Throughput</h2>
+            </div>
+            <span id="barCaption" class="badge">7D</span>
+          </div>
+          <div id="dailyBars" class="barChart"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Stack Health</p>
+              <h2>Platform</h2>
+            </div>
+            <div class="headActions">
+              <button id="youtubeReconnectBtn" class="btn ghost small" type="button">Reconnect YouTube</button>
+              <span id="platformCaption" class="badge">Live</span>
+            </div>
+          </div>
+          <div id="platformGrid" class="platformGrid"></div>
+        </section>
+      </section>
+
+      <section class="taskGrid">
+        <form id="runForm" class="panel formPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Task Runner</p>
+              <h2>Jalankan Workflow</h2>
+            </div>
+            <span class="badge">Engine</span>
+          </div>
+          <div class="formGrid">
+            <label class="field">
+              <span>Theme</span>
+              <input name="theme" value="auto">
+            </label>
+            <label class="field">
+              <span>URL manual</span>
+              <input name="url" placeholder="Kosongkan = ambil queue">
+            </label>
+            <label class="field">
+              <span>Range</span>
+              <input name="range" placeholder="00:01:20-00:02:05">
+            </label>
+            <label class="field">
+              <span>Scene</span>
+              <select name="scene_mode">
+                <option value="podcast" selected>Podcast</option>
+                <option value="solo">Solo</option>
+                <option value="reaction">Reaction</option>
+                <option value="game">Game</option>
+                <option value="sport">Sport</option>
+                <option value="auto">Auto</option>
+                <option value="active_speaker">Active speaker</option>
+                <option value="center">Center</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Clips</span>
+              <input name="clip_count" type="number" min="1" max="10" value="1">
+            </label>
+            <label class="field">
+              <span>Kualitas</span>
+              <select name="quality_profile">
+                <option value="standard">Standard</option>
+                <option value="fast">Fast</option>
+                <option value="high">High</option>
+                <option value="ultra">Ultra</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>AI Caption & Review</span>
+              <select name="ai_provider">
+                <option value="openai" selected>OpenAI nano only</option>
+              </select>
+            </label>
+            <label class="toggleField">
+              <input name="publish" type="checkbox">
+              <span>Publish ke platform</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_frame" type="checkbox" checked>
+              <span>Frame</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_filter" type="checkbox" checked>
+              <span>Filter</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_watermark" type="checkbox" checked>
+              <span>Watermark</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_music" type="checkbox" checked>
+              <span>Musik</span>
+            </label>
+            <input name="subtitle_font" type="hidden" value="Segoe UI Semibold">
+            <input name="subtitle_font_size" type="hidden" value="46">
+            <input name="subtitle_margin_v" type="hidden" value="550">
+            <input name="subtitle_margin_h" type="hidden" value="180">
+          </div>
+          <button class="btn primary" type="submit">Mulai Workflow</button>
+        </form>
+
+        <form id="videoForm" class="panel formPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Queue Builder</p>
+              <h2>Tambah Video</h2>
+            </div>
+            <span class="badge">State</span>
+          </div>
+          <div class="formGrid">
+            <label class="field wide">
+              <span>YouTube URL</span>
+              <input name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+            </label>
+            <label class="field">
+              <span>Theme</span>
+              <input name="theme" value="podcast artis">
+            </label>
+            <label class="field">
+              <span>Target</span>
+              <input name="target_date" type="date">
+            </label>
+            <label class="field">
+              <span>Priority</span>
+              <input name="priority" type="number" min="1" value="1">
+            </label>
+            <label class="field">
+              <span>Scene</span>
+              <select name="scene_mode">
+                <option value="podcast" selected>Podcast</option>
+                <option value="solo">Solo</option>
+                <option value="reaction">Reaction</option>
+                <option value="game">Game</option>
+                <option value="sport">Sport</option>
+                <option value="auto">Auto</option>
+                <option value="active_speaker">Active speaker</option>
+                <option value="center">Center</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Clips</span>
+              <input name="clip_count" type="number" min="1" max="10" value="1">
+            </label>
+            <label class="field">
+              <span>Kualitas</span>
+              <select name="quality_profile">
+                <option value="standard">Standard</option>
+                <option value="fast">Fast</option>
+                <option value="high">High</option>
+                <option value="ultra">Ultra</option>
+              </select>
+            </label>
+            <label class="toggleField">
+              <input name="use_frame" type="checkbox" checked>
+              <span>Frame</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_filter" type="checkbox" checked>
+              <span>Filter</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_watermark" type="checkbox" checked>
+              <span>Watermark</span>
+            </label>
+            <label class="toggleField">
+              <input name="use_music" type="checkbox" checked>
+              <span>Musik</span>
+            </label>
+            <input name="ai_provider" type="hidden" value="openai">
+            <input name="manual_range" type="hidden">
+            <input name="notes" type="hidden">
+            <input name="subtitle_font" type="hidden" value="Segoe UI Semibold">
+            <input name="subtitle_font_size" type="hidden" value="46">
+            <input name="subtitle_margin_v" type="hidden" value="550">
+            <input name="subtitle_margin_h" type="hidden" value="180">
+          </div>
+          <button class="btn primary" type="submit">Tambah ke Queue</button>
+        </form>
+      </section>
+
+      <section class="monitorGrid">
+        <section class="panel consolePanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Console</p>
+              <h2>Run Output</h2>
+            </div>
+            <span id="consoleMeta" class="badge">0 log</span>
+          </div>
+          <pre id="consoleOutput">Belum ada output.</pre>
+        </section>
+
+        <section class="panel tablePanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Queue</p>
+              <h2>Video</h2>
+            </div>
+            <div class="headActions">
+              <button id="resetQueueBtn" class="btn ghost small" type="button">Reset Queue Lama</button>
+              <span id="videoCount" class="badge">0 item</span>
+            </div>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Video</th>
+                  <th>Target</th>
+                  <th>Source</th>
+                  <th>URL</th>
+                </tr>
+              </thead>
+              <tbody id="videoRows"></tbody>
+            </table>
+          </div>
+          <button id="videosMore" class="btn ghost small moreBtn" type="button" hidden>Show more</button>
+        </section>
+
+        <section class="panel tablePanel jobsPanel">
+          <div class="panelHead">
+            <div>
+              <p class="kicker">Jobs</p>
+              <h2>Pipeline Log</h2>
+            </div>
+            <span id="jobCount" class="badge">0 item</span>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Job</th>
+                  <th>Publish</th>
+                  <th>Platform</th>
+                  <th>Updated</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody id="jobRows"></tbody>
+            </table>
+          </div>
+          <button id="jobsMore" class="btn ghost small moreBtn" type="button" hidden>Show more</button>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

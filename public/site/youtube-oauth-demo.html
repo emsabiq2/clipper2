@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>YouTube OAuth Demo - Clipper Emsa Pro</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --surface-2: #eef4f8;
+        --ink: #17202a;
+        --muted: #607083;
+        --line: #d9e2ea;
+        --teal: #148f86;
+        --green: #2f9b63;
+        --blue: #3468a3;
+        --amber: #9f6a13;
+        --shadow: 0 18px 46px rgba(23, 32, 42, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(180deg, rgba(20, 143, 134, 0.08), transparent 420px),
+          var(--bg);
+        color: var(--ink);
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--teal);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px 0;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .mark {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--teal);
+        color: #ffffff;
+        font-weight: 900;
+      }
+
+      .nav {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .hero {
+        min-height: 520px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 470px);
+        align-items: center;
+        gap: 34px;
+        padding: 42px 0 34px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--teal);
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 780px;
+        font-size: clamp(38px, 6vw, 72px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 22px;
+        line-height: 1.2;
+      }
+
+      h3 {
+        font-size: 15px;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin-top: 20px;
+        color: #3e4e60;
+        font-size: 18px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+      }
+
+      .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        border-radius: 8px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .btn.primary {
+        border-color: var(--teal);
+        background: var(--teal);
+        color: #ffffff;
+      }
+
+      .mock {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .mockTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        background: #fbfcfd;
+      }
+
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+
+      .dots span {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #bac7d3;
+      }
+
+      .mockBody {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .grantBox {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        background: var(--surface-2);
+      }
+
+      .grantBox small {
+        display: block;
+        color: var(--muted);
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .grantBox strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 18px;
+      }
+
+      .permission {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 12px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid var(--line);
+      }
+
+      .check {
+        width: 24px;
+        height: 24px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 8px;
+        background: var(--green);
+        color: #ffffff;
+        font-weight: 900;
+      }
+
+      .sectionGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        padding: 18px 0 48px;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 22px;
+        box-shadow: 0 10px 28px rgba(23, 32, 42, 0.07);
+      }
+
+      .panel.wide {
+        grid-column: 1 / -1;
+      }
+
+      .panelHead {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .badge {
+        min-height: 24px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 0 10px;
+        background: #e6f5f2;
+        color: var(--teal);
+        font-size: 11px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .detailTable {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .detailTable th,
+      .detailTable td {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        text-align: left;
+      }
+
+      .detailTable th {
+        width: 34%;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      code {
+        display: inline-block;
+        max-width: 100%;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eef4f8;
+        color: #17384c;
+        overflow-wrap: anywhere;
+      }
+
+      ol,
+      ul {
+        margin: 0;
+        padding-left: 21px;
+      }
+
+      li {
+        margin: 8px 0;
+        color: #3e4e60;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .flowStep {
+        min-height: 132px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfd;
+      }
+
+      .flowStep b {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--blue);
+        color: #ffffff;
+      }
+
+      .flowStep strong {
+        display: block;
+        margin-top: 12px;
+      }
+
+      .flowStep p {
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .scopeGrid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .scopeCard {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfd;
+      }
+
+      .scopeCard strong {
+        display: block;
+        color: var(--teal);
+      }
+
+      .scopeCard p {
+        margin-top: 8px;
+        color: #3e4e60;
+      }
+
+      .scriptBox {
+        display: grid;
+        gap: 12px;
+      }
+
+      .scriptLine {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fbfcfd;
+      }
+
+      .scriptLine b {
+        color: var(--amber);
+      }
+
+      footer {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 20px 0 34px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 920px) {
+        .hero,
+        .sectionGrid,
+        .flow,
+        .scopeGrid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: auto;
+        }
+
+        .topbar,
+        footer {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .scriptLine {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page topbar">
+      <a class="brand" href="/">
+        <span class="mark">CE</span>
+        <span>Clipper Emsa Pro</span>
+      </a>
+      <nav class="nav" aria-label="Site navigation">
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms-of-service">Terms</a>
+        <a href="/oauth-testing-instructions">Testing Instructions</a>
+        <a href="/login-youtube.php">YouTube Testing App</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Google OAuth Verification Video</p>
+          <h1>YouTube upload access, shown clearly from grant to publish.</h1>
+          <p class="lead">Use this page on <strong>clipper2.emsa.pro</strong> while recording the verification video. It explains the OAuth client, consent grant, requested YouTube scope, token handling, and how the app uploads generated Shorts.</p>
+          <div class="actions">
+            <a class="btn primary" href="#recording-flow">Start Recording Flow</a>
+            <a class="btn" href="/login-youtube.php">Open Testing App</a>
+            <a class="btn" href="/privacy-policy">Open Privacy Policy</a>
+          </div>
+        </div>
+
+        <aside class="mock" aria-label="OAuth consent mockup">
+          <div class="mockTop">
+            <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+            <strong>OAuth grant preview</strong>
+          </div>
+          <div class="mockBody">
+            <div class="grantBox">
+              <small>Application</small>
+              <strong>Clipper Emsa Pro</strong>
+            </div>
+            <div class="permission">
+              <span class="check">✓</span>
+              <div>
+                <strong>Upload YouTube videos</strong>
+                <p>Used only to upload approved generated clips to the connected YouTube channel.</p>
+              </div>
+            </div>
+            <div class="permission">
+              <span class="check">✓</span>
+              <div>
+                <strong>Offline access</strong>
+                <p>Used to create short-lived access tokens for scheduled publishing jobs.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="sectionGrid">
+        <article class="panel" id="app-details">
+          <div class="panelHead">
+            <h2>App Details To Show</h2>
+            <span class="badge">Clipper domain</span>
+          </div>
+          <table class="detailTable">
+            <tbody>
+              <tr>
+                <th>App name</th>
+                <td>Clipper Emsa Pro</td>
+              </tr>
+              <tr>
+                <th>Homepage</th>
+                <td><code>https://clipper2.emsa.pro</code></td>
+              </tr>
+              <tr>
+                <th>Privacy Policy</th>
+                <td><code>https://clipper2.emsa.pro/privacy-policy</code></td>
+              </tr>
+              <tr>
+                <th>Terms of Service</th>
+                <td><code>https://clipper2.emsa.pro/terms-of-service</code></td>
+              </tr>
+              <tr>
+                <th>Authorized domain</th>
+                <td><code>emsa.pro</code></td>
+              </tr>
+              <tr>
+                <th>OAuth client type</th>
+                <td>Web application</td>
+              </tr>
+              <tr>
+                <th>OAuth client ID</th>
+                <td><code id="clientIdText">Show from Google Cloud Console during the video</code></td>
+              </tr>
+              <tr>
+                <th>Redirect URI</th>
+                <td><code>https://clipper2.emsa.pro/auth/youtube/callback.php</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="panel">
+          <div class="panelHead">
+            <h2>What To Record</h2>
+            <span class="badge">Checklist</span>
+          </div>
+          <ol>
+            <li>Open Google Cloud Console and show the project name, OAuth consent screen, app name, authorized domain, and publishing status.</li>
+            <li>Open the OAuth client and clearly show the OAuth client ID and redirect URI.</li>
+            <li>Open <code>https://clipper2.emsa.pro</code> and show this app page, Privacy Policy, and Terms.</li>
+            <li>Start the YouTube OAuth grant flow and show the Google consent screen.</li>
+            <li>Approve the grant, return to the callback, then show that the app can validate the YouTube token.</li>
+            <li>Show a generated video clip being uploaded to YouTube Shorts through the automation workflow.</li>
+          </ol>
+        </article>
+
+        <article class="panel wide" id="recording-flow">
+          <div class="panelHead">
+            <h2>OAuth Grant Process</h2>
+            <span class="badge">User-visible flow</span>
+          </div>
+          <div class="flow">
+            <div class="flowStep">
+              <b>1</b>
+              <strong>User opens app</strong>
+              <p>The user signs in to Clipper Emsa Pro and chooses YouTube reconnect or publishing setup.</p>
+            </div>
+            <div class="flowStep">
+              <b>2</b>
+              <strong>Google consent</strong>
+              <p>Google shows the app name, OAuth client, and the YouTube upload permission requested by the app.</p>
+            </div>
+            <div class="flowStep">
+              <b>3</b>
+              <strong>Callback exchange</strong>
+              <p>The callback receives an authorization code and exchanges it for a refresh token.</p>
+            </div>
+            <div class="flowStep">
+              <b>4</b>
+              <strong>Scheduled upload</strong>
+              <p>GitHub Actions creates a temporary access token and uploads the final generated Short.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel wide">
+          <div class="panelHead">
+            <h2>Sensitive And Restricted Scope Usage</h2>
+            <span class="badge">YouTube only</span>
+          </div>
+          <div class="scopeGrid">
+            <div class="scopeCard">
+              <strong><code>https://www.googleapis.com/auth/youtube.upload</code></strong>
+              <p>This scope is used only to upload the final generated short video to the authenticated user's YouTube channel.</p>
+            </div>
+            <div class="scopeCard">
+              <strong>What the app does not do</strong>
+              <p>The app does not delete YouTube videos, manage comments, read private channel analytics, access Gmail, access Drive, or use unrelated Google APIs.</p>
+            </div>
+            <div class="scopeCard">
+              <strong>Refresh token handling</strong>
+              <p>Refresh tokens are stored as encrypted GitHub Actions secrets or server environment variables. Access tokens are short-lived and are generated only when needed.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panelHead">
+            <h2>Video Script</h2>
+            <span class="badge">Narration</span>
+          </div>
+          <div class="scriptBox">
+            <div class="scriptLine">
+              <b>Opening</b>
+              <span>This is Clipper Emsa Pro at clipper2.emsa.pro. It creates short clips from user-selected YouTube source links and publishes approved generated videos.</span>
+            </div>
+            <div class="scriptLine">
+              <b>Consent</b>
+              <span>The app asks for YouTube upload permission so it can upload the generated short video to the connected channel.</span>
+            </div>
+            <div class="scriptLine">
+              <b>Token use</b>
+              <span>The refresh token is stored securely and used only to generate temporary access tokens for scheduled upload jobs.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panelHead">
+            <h2>Data Handling</h2>
+            <span class="badge">Disclosure</span>
+          </div>
+          <ul>
+            <li>Input videos are supplied by the dashboard user or queue.</li>
+            <li>Generated metadata includes title, description, tags, captions, and thumbnail assets.</li>
+            <li>OAuth tokens are never shown in the public UI.</li>
+            <li>The user can revoke Google account access at any time.</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <span>OAuth demo page for Google verification recording</span>
+    </footer>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get("client_id");
+      if (clientId) {
+        document.querySelector("#clientIdText").textContent = clientId;
+      }
+    </script>
+  </body>
+</html>

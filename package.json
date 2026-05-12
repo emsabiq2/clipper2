@@ -1,0 +1,40 @@
+{
+  "name": "clipper2-automation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Automation pipeline for YouTube podcast clips, SFTP storage, and social publishing.",
+  "scripts": {
+    "check": "node src/check.js",
+    "dashboard": "node src/server.js",
+    "dev": "node src/server.js",
+    "run": "node src/run.js",
+    "dry-run": "node src/run.js --dry-run",
+    "publish": "node src/run.js --publish",
+    "publish:ready": "node src/publish-ready.js",
+    "scheduler": "node src/scheduler.js",
+    "youtube:check": "node src/youtube-check.js",
+    "instagram:check": "node src/instagram-check.js",
+    "instagram:token": "node src/instagram-token-fastcheck.js --persist-local",
+    "facebook:token": "node src/facebook-token-fastcheck.js --persist-local",
+    "videos:discover": "node src/video-discovery.js",
+    "tiktok:auth-url": "node src/tiktok-auth-url.js",
+    "tiktok:token": "node src/tiktok-token-fastcheck.js --persist-local",
+    "threads:check": "node src/threads-check.js",
+    "threads:token": "node src/threads-token-fastcheck.js --persist-local",
+    "remote:cleanup": "node src/cleanup-ftp.js",
+    "remote:cleanup:dry": "node src/cleanup-ftp.js --dry-run",
+    "ftp:cleanup": "node src/cleanup-ftp.js",
+    "ftp:cleanup:dry": "node src/cleanup-ftp.js --dry-run",
+    "clipper:setup": "python -m pip install -r clipper/requirements.txt"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "basic-ftp": "^5.3.1",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "libsodium-wrappers": "^0.7.15",
+    "node-cron": "^4.2.1",
+    "ssh2-sftp-client": "^12.1.1"
+  }
+}

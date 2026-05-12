@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Privacy Policy - Clipper Emsa Pro</title>
+    <meta name="description" content="Privacy Policy for Clipper Emsa Pro, Google OAuth YouTube upload, and TikTok Direct Post integrations.">
+    <link rel="canonical" href="https://clipper2.emsa.pro/privacy-policy">
+    <link rel="stylesheet" href="/site.css">
+  </head>
+  <body>
+    <header class="siteHeader">
+      <a class="brand" href="/"><span class="brandMark">CE</span><span>Clipper Emsa Pro</span></a>
+      <nav>
+        <a href="/terms-of-service">Terms</a>
+        <a href="/application-use-case">Use Case</a>
+        <a href="/oauth-scopes-justification">Scopes</a>
+        <a class="loginLink" href="/login-youtube.php">YouTube OAuth</a>
+        <a class="loginLink" href="/login-tiktok.php">TikTok Direct Post</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy Policy</h1>
+      <p class="docMeta">Effective date: May 8, 2026</p>
+      <p class="docLead">This Privacy Policy explains how Clipper Emsa Pro, available at <a href="https://clipper2.emsa.pro">https://clipper2.emsa.pro</a>, accesses, uses, stores, shares, secures, retains, and deletes user data when a user connects Google OAuth for YouTube upload or TikTok Direct Post.</p>
+
+      <div class="notice">
+        <strong>Google user data summary:</strong>
+        Clipper Emsa Pro requests only <code>https://www.googleapis.com/auth/youtube.upload</code>. The app uses this permission only to upload approved generated short videos to the YouTube channel selected by the authenticated Google user.
+      </div>
+      <div class="notice">
+        <strong>TikTok user data summary:</strong>
+        Clipper Emsa Pro requests TikTok permissions needed for creator identification and Direct Post publishing, currently <code>user.info.basic</code>, <code>video.upload</code>, and <code>video.publish</code>. The app uses these permissions only to show the connected creator, prepare required publish settings, and submit a user-approved video to TikTok.
+      </div>
+
+      <h2>1. Application Purpose</h2>
+      <p>Clipper Emsa Pro is a web app for creating short vertical clips from user-selected video sources, generating related publishing metadata, storing the generated media on the user's configured hosting, and uploading or publishing the final video to connected platforms. For Google OAuth, the user-facing purpose is YouTube upload. For TikTok, the user-facing purpose is Direct Post publishing from an authorized creator account.</p>
+
+      <h2>2. Google User Data We Access</h2>
+      <p>When you authorize the YouTube integration, Clipper Emsa Pro may process the following Google user data:</p>
+      <ul>
+        <li>OAuth authorization code returned by Google during the consent flow.</li>
+        <li>OAuth access token and refresh token issued by Google after consent.</li>
+        <li>Granted OAuth scope, token audience, token expiry, and token status used to validate the connection.</li>
+        <li>YouTube upload response data, including uploaded video ID, video URL, privacy status, title, and upload result.</li>
+      </ul>
+      <p>Clipper Emsa Pro does not request Google profile, Gmail, Google Drive, Calendar, Analytics, comments, channel membership, or broad YouTube account-management scopes for this YouTube upload feature.</p>
+
+      <h2>3. How We Use Google User Data</h2>
+      <p>Google user data is used only to provide or improve user-facing app functionality:</p>
+      <ul>
+        <li>Start a Google OAuth consent flow when the user chooses YouTube connection or publishing setup.</li>
+        <li>Exchange the authorization code for tokens after the user grants consent.</li>
+        <li>Create short-lived access tokens from the refresh token when a scheduled or manual upload job needs to upload a generated video.</li>
+        <li>Upload the final generated video file and its metadata to the user's YouTube channel using YouTube Data API v3.</li>
+        <li>Store the resulting YouTube video ID, URL, status, and errors so the user can audit the workflow result.</li>
+      </ul>
+      <p>Google user data is not used for advertising, retargeting, credit decisions, data brokerage, sale of data, unrelated analytics, or training generalized AI or machine learning models.</p>
+
+      <h2>4. TikTok User Data We Access</h2>
+      <p>When you authorize the TikTok Direct Post integration, Clipper Emsa Pro may process the following TikTok user data:</p>
+      <ul>
+        <li>OAuth authorization code returned by TikTok during the consent flow.</li>
+        <li>OAuth access token and refresh token issued by TikTok after consent, if provided for the approved TikTok product.</li>
+        <li>Basic creator information needed to identify the connected account, such as creator nickname, avatar, and account identifier returned by TikTok APIs.</li>
+        <li>Creator publishing requirements returned by TikTok, such as available privacy options, maximum video duration, and interaction settings.</li>
+        <li>TikTok publish response data, including publish ID, status, errors, and submitted publish settings.</li>
+      </ul>
+
+      <h2>5. How We Use TikTok User Data</h2>
+      <p>TikTok user data is used only to provide or improve user-facing app functionality:</p>
+      <ul>
+        <li>Start the TikTok authorization flow when the user chooses TikTok Direct Post.</li>
+        <li>Show the connected creator account so the user or reviewer can confirm the correct TikTok account is connected.</li>
+        <li>Load TikTok-provided privacy options, duration limits, and interaction controls required before posting.</li>
+        <li>Submit the approved generated video and user-selected publish settings to TikTok.</li>
+        <li>Store publish ID, status, and errors so the user can audit the TikTok publish result.</li>
+      </ul>
+      <p>TikTok user data is not used for advertising, retargeting, credit decisions, data brokerage, sale of data, unrelated analytics, or training generalized AI or machine learning models.</p>
+
+      <h2>6. Storage of Connected Platform User Data</h2>
+      <p>Refresh tokens are stored server-side as environment variables or encrypted GitHub Actions secrets so scheduled or manual workflows can upload only after the user has granted permission. Access tokens are short-lived and are generated or used only when needed for a platform API request. Tokens are not shown in public pages, not embedded in client-side code, and not committed to a public repository.</p>
+      <p>Workflow records such as video ID, upload status, title, error logs, and publish history may be stored in application state files or logs for audit, duplicate prevention, retry, troubleshooting, and user-visible status reporting.</p>
+
+      <h2>7. Sharing and Disclosure</h2>
+      <p>Clipper Emsa Pro does not sell Google or TikTok user data. Connected platform user data is disclosed only as needed to operate the app:</p>
+      <ul>
+        <li>To Google APIs, so the app can complete OAuth token exchange and upload the user-approved video to YouTube.</li>
+        <li>To TikTok APIs, so the app can complete OAuth token exchange, retrieve creator publishing requirements, and submit the user-approved video to TikTok.</li>
+        <li>To infrastructure providers used by the app, such as hosting, SFTP storage, GitHub Actions, and secret storage, only as needed to run the user-facing workflow.</li>
+        <li>When required by law, security review, or to protect the app and users from abuse.</li>
+      </ul>
+
+      <h2>8. Security Measures</h2>
+      <p>Clipper Emsa Pro uses reasonable security controls for sensitive data, including HTTPS, server-side token handling, environment variables, encrypted repository secrets, dashboard access controls, state validation in OAuth flows, restricted file access rules, SFTP media storage, and avoidance of token output in public UI or logs.</p>
+
+      <h2>9. Retention</h2>
+      <p>OAuth refresh tokens are retained until the user reconnects, revokes access, requests deletion, or the app owner removes the token from the server or secret store. Short-lived access tokens are used temporarily for API calls and expire according to the platform's token lifetime. Workflow metadata and logs are retained only as long as needed for publishing status, audit, duplicate prevention, retry, and troubleshooting. Temporary render files may be deleted after successful upload or according to the app cleanup settings.</p>
+
+      <h2>10. Deletion and Revocation</h2>
+      <p>You can revoke Clipper Emsa Pro's Google access at any time from your Google Account permissions page, and you can revoke TikTok access from your TikTok account settings where available. You can also request deletion of stored OAuth tokens, workflow records, generated metadata, or related publish logs by contacting <a href="mailto:support@emsa.pro">support@emsa.pro</a>. See <a href="/data-deletion">Data Deletion</a> for instructions.</p>
+
+      <h2>11. Limited Use and Platform Data Commitments</h2>
+      <p>Clipper Emsa Pro's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements. The app uses Google user data only to provide and improve the YouTube upload feature requested by the user. TikTok data is used only to provide the TikTok Direct Post feature requested by the user.</p>
+
+      <h2>12. Changes to This Policy</h2>
+      <p>If the way Clipper Emsa Pro uses connected platform user data changes, this page will be updated and the effective date will be revised. Material changes will be reflected before the updated behavior is used for Google OAuth data or TikTok data.</p>
+
+      <h2>13. Contact</h2>
+      <p>For privacy questions or deletion requests, contact <a href="mailto:support@emsa.pro">support@emsa.pro</a>.</p>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <a href="/terms-of-service">Terms</a>
+      <a href="/oauth-testing-instructions">OAuth Testing</a>
+      <a href="/login-tiktok.php">TikTok Direct Post</a>
+    </footer>
+  </body>
+</html>

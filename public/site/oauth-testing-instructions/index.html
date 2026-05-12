@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>OAuth Testing Instructions - Clipper Emsa Pro</title>
+    <meta name="description" content="Google OAuth testing instructions for Clipper Emsa Pro YouTube upload verification.">
+    <link rel="canonical" href="https://clipper2.emsa.pro/oauth-testing-instructions">
+    <link rel="stylesheet" href="/site.css">
+  </head>
+  <body>
+    <header class="siteHeader">
+      <a class="brand" href="/"><span class="brandMark">CE</span><span>Clipper Emsa Pro</span></a>
+      <nav>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/application-use-case">Use Case</a>
+        <a href="/oauth-scopes-justification">Scopes</a>
+        <a class="loginLink" href="/login-youtube.php">YouTube OAuth</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <p class="eyebrow">Google OAuth Verification</p>
+      <h1>OAuth Testing Instructions</h1>
+      <p class="docLead">This page gives Google reviewers the steps needed to test the OAuth consent flow and the user-facing YouTube upload purpose of Clipper Emsa Pro.</p>
+
+      <table class="docTable">
+        <tbody>
+          <tr>
+            <th>Application</th>
+            <td>Clipper Emsa Pro</td>
+          </tr>
+          <tr>
+            <th>Homepage</th>
+            <td><a href="https://clipper2.emsa.pro">https://clipper2.emsa.pro</a></td>
+          </tr>
+          <tr>
+            <th>Testing URL</th>
+            <td><a href="https://clipper2.emsa.pro/login-youtube.php">https://clipper2.emsa.pro/login-youtube.php</a></td>
+          </tr>
+          <tr>
+            <th>Redirect URI</th>
+            <td><code>https://clipper2.emsa.pro/auth/youtube/callback.php</code></td>
+          </tr>
+          <tr>
+            <th>Requested scope</th>
+            <td><code>https://www.googleapis.com/auth/youtube.upload</code></td>
+          </tr>
+          <tr>
+            <th>Local app login</th>
+            <td>No local username or password is required for the YouTube OAuth testing page. The reviewer can use a Google test account that owns or can upload to a YouTube channel.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Step-by-Step OAuth Test</h2>
+      <ol>
+        <li>Open <a href="https://clipper2.emsa.pro">https://clipper2.emsa.pro</a> and confirm that the public homepage, Privacy Policy, Terms, use case, and scope justification pages are accessible without login.</li>
+        <li>Open <a href="https://clipper2.emsa.pro/login-youtube.php">https://clipper2.emsa.pro/login-youtube.php</a>.</li>
+        <li>Click <strong>Connect / Reconnect YouTube</strong>.</li>
+        <li>Google opens the OAuth consent screen for <strong>Clipper Emsa Pro</strong>.</li>
+        <li>Review the requested permission. The app should request only <code>https://www.googleapis.com/auth/youtube.upload</code>.</li>
+        <li>Grant consent using a Google account that has a YouTube channel available for upload testing.</li>
+        <li>Google redirects to <code>https://clipper2.emsa.pro/auth/youtube/callback.php</code>.</li>
+        <li>The page returns to the YouTube testing app and shows whether the OAuth grant was completed.</li>
+        <li>Click <strong>Validate Token</strong> to confirm the token status, audience, expiry, and granted scope.</li>
+        <li>Optional: click <strong>Refresh Access Token</strong> to confirm the refresh token can create a new short-lived access token for scheduled upload jobs.</li>
+      </ol>
+
+      <h2>How To Verify The Upload Use Case</h2>
+      <p>The OAuth test page demonstrates consent and token validation. The production workflow uses the same Google OAuth grant to call YouTube Data API v3 and upload a final generated MP4 file to the user's channel. The upload path is:</p>
+      <ol>
+        <li>A user adds or selects a video source in the Clipper workflow.</li>
+        <li>The app creates a short vertical clip, title, description, tags, and optional thumbnail assets.</li>
+        <li>The workflow stores generated media on SFTP hosting to produce a public URL and keeps job status for audit.</li>
+        <li>When publishing is enabled, the workflow creates a short-lived Google access token from the stored refresh token.</li>
+        <li>The workflow uploads the generated video through YouTube Data API v3 and stores the returned YouTube video ID and URL.</li>
+      </ol>
+
+      <div class="notice">
+        The testing page does not expose refresh tokens or client secrets. Tokens are stored server-side for the browser session or as encrypted production secrets.
+      </div>
+
+      <h2>Reviewer Notes</h2>
+      <ul>
+        <li>If the OAuth consent screen is still in Google testing mode and Google provides a reviewer email address, that email should be added to the OAuth test users list before review.</li>
+        <li>No PDF, iframe, embedded document, or login wall is required to access this instruction page.</li>
+        <li>If Google needs an operator dashboard PIN for a deeper production workflow demo, provide it only in the private verification email response, not on this public page.</li>
+      </ul>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <a href="/privacy-policy">Privacy Policy</a>
+      <a href="/terms-of-service">Terms</a>
+    </footer>
+  </body>
+</html>

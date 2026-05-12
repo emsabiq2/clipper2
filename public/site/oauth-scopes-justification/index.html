@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>OAuth Scopes Justification - Clipper Emsa Pro</title>
+    <meta name="description" content="Minimum Google OAuth scope justification for Clipper Emsa Pro.">
+    <link rel="canonical" href="https://clipper2.emsa.pro/oauth-scopes-justification">
+    <link rel="stylesheet" href="/site.css">
+  </head>
+  <body>
+    <header class="siteHeader">
+      <a class="brand" href="/"><span class="brandMark">CE</span><span>Clipper Emsa Pro</span></a>
+      <nav>
+        <a href="/privacy-policy">Privacy Policy</a>
+        <a href="/terms-of-service">Terms</a>
+        <a href="/application-use-case">Use Case</a>
+        <a class="loginLink" href="/login-youtube.php">YouTube OAuth</a>
+      </nav>
+    </header>
+
+    <main class="doc">
+      <p class="eyebrow">Google OAuth Verification</p>
+      <h1>OAuth Scopes Justification</h1>
+      <p class="docLead">Clipper Emsa Pro requests the minimum Google OAuth scope needed for its user-facing YouTube upload feature.</p>
+
+      <table class="docTable">
+        <tbody>
+          <tr>
+            <th>Requested scope</th>
+            <td><code>https://www.googleapis.com/auth/youtube.upload</code></td>
+          </tr>
+          <tr>
+            <th>Purpose</th>
+            <td>Upload a final generated short video to the YouTube channel authorized by the user.</td>
+          </tr>
+          <tr>
+            <th>API used</th>
+            <td>YouTube Data API v3 video upload endpoint for creating a resumable upload session and uploading the MP4 file with snippet and status metadata.</td>
+          </tr>
+          <tr>
+            <th>Why this is minimum</th>
+            <td>The app needs to insert/upload videos. Read-only scopes cannot upload, and broader YouTube scopes would grant unrelated access that the app does not need.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Why <code>youtube.upload</code> Is Required</h2>
+      <p>The core user action is publishing the generated short video to the user's YouTube channel. The app must be able to create a YouTube upload session and send the final MP4 file plus user-visible metadata such as title, description, tags, category, made-for-kids setting, and privacy status.</p>
+
+      <h2>Scopes Not Requested</h2>
+      <p>Clipper Emsa Pro intentionally does not request broader or unrelated Google scopes:</p>
+      <ul>
+        <li><code>https://www.googleapis.com/auth/youtube</code> is not requested because broad management of the user's YouTube account is not needed.</li>
+        <li><code>https://www.googleapis.com/auth/youtube.force-ssl</code> is not requested because the app does not need to edit comments, ratings, captions, or permanently delete YouTube videos.</li>
+        <li><code>https://www.googleapis.com/auth/youtube.readonly</code> is not requested because reading YouTube account data is not the user-facing feature.</li>
+        <li>Gmail, Drive, Calendar, Photos, Analytics, and Workspace scopes are not requested.</li>
+      </ul>
+
+      <h2>Scope Use In The App</h2>
+      <ol>
+        <li>User clicks the YouTube connection button in the app.</li>
+        <li>The app redirects the user to Google OAuth with only <code>youtube.upload</code>.</li>
+        <li>After consent, the app stores the refresh token server-side.</li>
+        <li>When a user-approved clip is ready, the app refreshes a short-lived access token.</li>
+        <li>The app uploads the generated MP4 and receives a YouTube video ID and URL.</li>
+        <li>The app stores the upload result for user-visible status, audit, duplicate prevention, and troubleshooting.</li>
+      </ol>
+
+      <h2>Public API Keys and Source Discovery</h2>
+      <p>The app may use public source video URLs or API-key based discovery for queue building. That does not require Google OAuth user data. The OAuth scope described on this page is only for uploading videos to a user's YouTube channel after consent.</p>
+
+      <h2>Limited Data Handling</h2>
+      <p>The app does not use the requested scope to read unrelated private data, sell data, serve ads, train generalized AI models, or provide data to information resellers. See the <a href="/privacy-policy">Privacy Policy</a> for storage, sharing, retention, security, and deletion details.</p>
+    </main>
+
+    <footer>
+      <span>Clipper Emsa Pro</span>
+      <a href="/privacy-policy">Privacy Policy</a>
+      <a href="/oauth-testing-instructions">OAuth Testing</a>
+    </footer>
+  </body>
+</html>
